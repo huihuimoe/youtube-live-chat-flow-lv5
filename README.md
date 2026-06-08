@@ -26,8 +26,11 @@
 
 ```bash
 # install dependencies
-yarn
+pnpm install
 
 # watch files changed and reload extension
-yarn dev
+pnpm dev
+
+# build extension
+pnpm build
 ```

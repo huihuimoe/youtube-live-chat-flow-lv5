@@ -183,7 +183,7 @@ export default class SettingsModule extends VuexModule {
   @Mutation
   resetState() {
     for (const [k, v] of Object.entries(initialState)) {
-      ;(this as any)[k] = v // eslint-disable-line @typescript-eslint/no-explicit-any
+      ;(this as any)[k] = v
     }
   }
 }

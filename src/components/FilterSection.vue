@@ -10,7 +10,7 @@
 <script setup lang="ts">
 const handleClickLink = () => {
   window.open(
-    'https://chrome.google.com/webstore/detail/chat-filter-for-youtube-l/jalcplhakmckbmlbidmbmpaegcpbejog'
+    'https://chrome.google.com/webstore/detail/chat-filter-for-youtube-l/jalcplhakmckbmlbidmbmpaegcpbejog',
   )
 }
 </script>

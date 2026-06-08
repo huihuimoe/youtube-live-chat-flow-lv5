@@ -99,14 +99,14 @@ export default class FlowController {
     }
 
     const video = parent.document.querySelector<HTMLVideoElement>(
-      'ytd-watch-flexy video.html5-main-video'
+      'ytd-watch-flexy video.html5-main-video',
     )
     if (!video || video.paused) {
       return
     }
 
     const container = parent.document.querySelector<HTMLElement>(
-      '.html5-video-container'
+      '.html5-video-container',
     )
     if (!container) {
       return
@@ -114,7 +114,7 @@ export default class FlowController {
 
     const [lines, height] = this.getLinesAndHeight(
       video.offsetHeight,
-      this.settings
+      this.settings,
     )
 
     const deleted = await this.validateDeletedMessage(element)
@@ -140,7 +140,7 @@ export default class FlowController {
     container.appendChild(me)
     await waitAllImagesLoaded(me)
 
-    sem.acquire(async () => {
+    void sem.acquire(async () => {
       if (!this.settings || video.paused) {
         me.remove()
         return
@@ -194,7 +194,7 @@ export default class FlowController {
 
   private async validateDeletedMessage(element: HTMLElement) {
     const active = document.documentElement.classList.contains(
-      ClassName.filterActivated
+      ClassName.filterActivated,
     )
     if (!active) {
       return false
@@ -216,7 +216,7 @@ export default class FlowController {
   private async createMessageElement(
     message: Message,
     height: number,
-    settings: Settings
+    settings: Settings,
   ) {
     const ms = new MessageSettings(message, settings)
     if (!ms.template) {
@@ -248,7 +248,7 @@ export default class FlowController {
   private createTimeline(
     element: HTMLElement,
     containerWidth: number,
-    settings: Settings
+    settings: Settings,
   ) {
     const displayMillis = settings.displayTime * 1000
     const delayMillis = settings.delayTime * 1000
@@ -268,7 +268,7 @@ export default class FlowController {
   private createAnimation(
     element: HTMLElement,
     containerWidth: number,
-    settings: Settings
+    settings: Settings,
   ) {
     element.style.transform = `translate(${containerWidth}px, 0px)`
 
@@ -346,7 +346,7 @@ export default class FlowController {
     this.observer?.disconnect()
 
     const items = await querySelectorAsync(
-      '#items.yt-live-chat-item-list-renderer'
+      '#items.yt-live-chat-item-list-renderer',
     )
     if (!items) {
       return
@@ -357,7 +357,7 @@ export default class FlowController {
         const nodes = Array.from(mutation.addedNodes)
         nodes.forEach((node: Node) => {
           if (node instanceof HTMLElement) {
-            this.proceed(node)
+            void this.proceed(node)
           }
         })
       })

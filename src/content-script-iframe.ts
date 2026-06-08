@@ -1,7 +1,7 @@
 import FlowController from '~/utils/flow-controller'
-import chat from '~/assets/chat.svg'
-import downArrow from '~/assets/down-arrow.svg'
-import refresh from '~/assets/refresh.svg'
+import chat from '~/assets/chat.svg?raw'
+import downArrow from '~/assets/down-arrow.svg?raw'
+import refresh from '~/assets/refresh.svg?raw'
 import { querySelectorAsync } from '~/utils/dom-helper'
 
 const controller = new FlowController()
@@ -27,19 +27,23 @@ const menuButtonConfigs = [
 
 const updateControlButton = () => {
   const button = parent.document.querySelector('.ylcf-control-button')
-  button && button.setAttribute('aria-pressed', String(controller.enabled))
+  if (button) {
+    button.setAttribute('aria-pressed', String(controller.enabled))
+  }
 }
 
 const removeControlButton = () => {
   const button = parent.document.querySelector('.ylcf-control-button')
-  button && button.remove()
+  if (button) {
+    button.remove()
+  }
 }
 
 const addControlButton = () => {
   removeControlButton()
 
   const controls = parent.document.querySelector(
-    '.ytp-chrome-bottom .ytp-chrome-controls .ytp-right-controls'
+    '.ytp-chrome-bottom .ytp-chrome-controls .ytp-right-controls',
   )
   if (!controls) {
     return
@@ -81,7 +85,7 @@ const updateMenuButtons = () => {
 
 const addMenuButtons = () => {
   const refIconButton = document.querySelector(
-    '#chat-messages > yt-live-chat-header-renderer > yt-icon-button'
+    '#chat-messages > yt-live-chat-header-renderer > yt-icon-button',
   )
   if (!refIconButton) {
     return
@@ -97,7 +101,7 @@ const addMenuButtons = () => {
       'yt-live-chat-header-renderer',
       'style-scope',
       'ylcf-menu-button',
-      config.className
+      config.className,
     )
     iconButton.title = config.title
     iconButton.onclick = config.onclick
@@ -114,7 +118,7 @@ const addMenuButtons = () => {
 
 const addVideoEventListener = () => {
   const video = parent.document.querySelector<HTMLVideoElement>(
-    'ytd-watch-flexy video.html5-main-video'
+    'ytd-watch-flexy video.html5-main-video',
   )
   if (!video) {
     return
@@ -159,7 +163,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const { type, data } = message
   switch (type) {
     case 'url-changed':
-      init().then(() => sendResponse())
+      void init().then(() => sendResponse())
       return true
     case 'enabled-changed':
       controller.enabled = data.enabled

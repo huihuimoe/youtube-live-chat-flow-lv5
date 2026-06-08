@@ -10,7 +10,7 @@ const resizeAvatarUrl = (url: string, size: number) => {
 const resizeEmojiUrl = (url: string, size: number) => {
   return url.replace(
     /(=w)\d+(-h)\d+([^=]+)$/,
-    `$1${Math.ceil(size)}$2${Math.ceil(size)}$3`
+    `$1${Math.ceil(size)}$2${Math.ceil(size)}$3`,
   )
 }
 
@@ -22,7 +22,7 @@ const resizeStickerUrl = (url: string, size: number) => {
 const getOutlineStyle = (
   fontColor: string,
   height: number,
-  outlineRatio: number
+  outlineRatio: number,
 ) => {
   if (!outlineRatio) {
     return ''
@@ -70,7 +70,7 @@ const renderAuthor = (author: string, height: number) => {
 const renderMessage = (
   html: string,
   height: number,
-  emojiStyle: EmojiStyle
+  emojiStyle: EmojiStyle,
 ) => {
   const el = document.createElement('span')
   el.style.minWidth = '0'
@@ -159,7 +159,7 @@ const renderOneLineMessage = ({
   if (author || subText) {
     const a = renderAuthor(
       (author ?? '') + (author && subText ? ' - ' : '') + (subText ?? ''),
-      height * 0.8
+      height * 0.8,
     )
     el.append(a)
 
@@ -229,8 +229,8 @@ const renderTwoLineMessage = ({
   wrapper.append(
     renderAuthor(
       (author ?? '') + (subText ? ` - ${subText}` : ''),
-      height * 0.8
-    )
+      height * 0.8,
+    ),
   )
 
   let message
@@ -329,7 +329,7 @@ export const render = (template: Template, params: Params) => {
       getOutlineStyle(
         params.fontColor ?? 'white',
         params.height,
-        params.outlineRatio
+        params.outlineRatio,
       ),
   }
   switch (template) {

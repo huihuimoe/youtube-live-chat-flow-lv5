@@ -112,25 +112,25 @@ const handleClickAvatar = (authorType: AuthorType) => {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .color-picker {
   width: 26px;
   height: 26px;
   border-radius: 50%;
   border: 1px solid grey;
   position: relative;
-  > .v-text-field {
-    position: absolute;
-    margin: 0 !important;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    ::v-deep {
-      input {
-        cursor: pointer;
-        height: 24px;
-      }
-    }
-  }
+}
+
+.color-picker > .v-text-field {
+  position: absolute;
+  margin: 0 !important;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.color-picker > .v-text-field ::v-deep input {
+  cursor: pointer;
+  height: 24px;
 }
 </style>

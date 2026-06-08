@@ -38,13 +38,13 @@ const handleClickReset = () => {
 }
 </script>
 
-<style lang="scss">
+<style>
 html {
   overflow-y: auto;
 }
 </style>
 
-<style lang="scss" scoped>
+<style scoped>
 .v-application {
   width: 640px;
 }

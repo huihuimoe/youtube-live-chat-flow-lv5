@@ -74,13 +74,16 @@ const settingsChanged = async () => {
   const settings = await getSettings()
   const tabs = await chrome.tabs.query({})
   for (const tab of tabs) {
+    if (!tab.id) {
+      continue
+    }
+
     try {
-      tab.id &&
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'settings-changed',
-          data: { settings },
-        })
-    } catch (e) {} // eslint-disable-line no-empty
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'settings-changed',
+        data: { settings },
+      })
+    } catch {}
   }
 }
 
@@ -95,28 +98,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { tab } = sender
   switch (type) {
     case 'content-loaded':
-      contentLoaded().then((data) => sendResponse(data))
+      void contentLoaded().then((data) => sendResponse(data))
       return true
     case 'iframe-loaded':
       if (tab?.id) {
-        iframeLoaded(tab.id).then((data) => sendResponse(data))
+        void iframeLoaded(tab.id).then((data) => sendResponse(data))
         return true
       }
       return
     case 'control-button-clicked':
       if (tab?.id) {
-        toggleEnabled(tab.id).then(() => sendResponse())
+        void toggleEnabled(tab.id).then(() => sendResponse())
         return true
       }
       return
     case 'menu-button-clicked':
       if (tab?.id) {
-        toggleFollowing(tab.id).then(() => sendResponse())
+        void toggleFollowing(tab.id).then(() => sendResponse())
         return true
       }
       return
     case 'settings-changed':
-      settingsChanged().then(() => sendResponse())
+      void settingsChanged().then(() => sendResponse())
       return true
   }
 })

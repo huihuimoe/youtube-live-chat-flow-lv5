@@ -1,20 +1,23 @@
 {
   "compilerOptions": {
-    "target": "es2019",
+    "target": "ES2023",
     "module": "esnext",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "sourceMap": true,
-    "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
-      "~~/*": ["./*"]
+      "~~/*": ["./*"],
+      "vuex": ["./node_modules/vuex/types/index.d.ts"]
     },
     "types": ["chrome", "vuetify"],
     "experimentalDecorators": true,
+    "useDefineForClassFields": false,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"]
+  "include": ["src", "manifest.config.ts", "vite.config.ts"]
 }

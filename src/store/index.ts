@@ -7,7 +7,7 @@ import settings from '~/store/settings'
 Vue.use(Vuex)
 
 const vuexPersist = new VuexPersistence({
-  storage: chrome.storage.local as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  storage: chrome.storage.local as any,
   asyncStorage: true,
   restoreState: async (key, storage) => {
     const result = await storage?.get(key)
@@ -16,7 +16,9 @@ const vuexPersist = new VuexPersistence({
     let state = {}
     try {
       state = JSON.parse(json)
-    } catch (e) {} // eslint-disable-line no-empty
+    } catch {
+      state = {}
+    }
 
     return {
       ...state,
@@ -30,7 +32,6 @@ const vuexPersist = new VuexPersistence({
 })
 
 const createStore = () =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new Vuex.Store<any>({
     state: {},
     modules: {
@@ -41,17 +42,15 @@ const createStore = () =>
       (store) => {
         store.subscribe(
           async () =>
-            await chrome.runtime.sendMessage({ type: 'settings-changed' })
+            await chrome.runtime.sendMessage({ type: 'settings-changed' }),
         )
       },
     ],
   })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const readyStore = async () => {
   const store = createStore()
   // @see https://github.com/championswimmer/vuex-persist#how-to-know-when-async-store-has-been-replaced
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (store as any).restored
   return store
 }

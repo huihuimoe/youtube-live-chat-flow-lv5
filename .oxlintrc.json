@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["app/**", "dist/**", "node_modules/**"],
+  "plugins": [
+    "eslint",
+    "typescript",
+    "oxc",
+    "vue",
+    "promise",
+    "node",
+    "import"
+  ],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "globals": {
+    "chrome": "readonly"
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  }
+}

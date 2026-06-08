@@ -18,14 +18,14 @@ export default class MessageSettings {
     }
     // if input control is moved
     const movedSpan = parent.document.querySelector(
-      '#input-container span#author-name'
+      '#input-container span#author-name',
     )
     if (movedSpan?.textContent) {
       return movedSpan.textContent
     }
     // otherwise
     const button = parent.document.querySelector<HTMLElement>(
-      '.html5-video-player .ytp-chrome-top-buttons .ytp-watch-later-button'
+      '.html5-video-player .ytp-chrome-top-buttons .ytp-watch-later-button',
     )
     // TODO: japanese only
     return (
@@ -36,7 +36,7 @@ export default class MessageSettings {
   private get authorType() {
     const author = this.message.author
     const you = author && author === this.yourName
-    const authorType = you ? 'you' : this.message.authorType ?? 'guest'
+    const authorType = you ? 'you' : (this.message.authorType ?? 'guest')
     return (
       ['guest', 'member', 'moderator', 'owner', 'you'].includes(authorType)
         ? authorType
@@ -46,7 +46,7 @@ export default class MessageSettings {
 
   private get paid() {
     return ['paid-message', 'paid-sticker', 'membership-item'].includes(
-      this.message.messageType ?? ''
+      this.message.messageType ?? '',
     )
   }
 
@@ -108,8 +108,8 @@ export default class MessageSettings {
     const backgroundColor = this.paid
       ? this.message.backgroundColor
       : this.settings.background
-      ? 'black'
-      : undefined
+        ? 'black'
+        : undefined
 
     if (!backgroundColor) {
       return undefined
@@ -119,8 +119,8 @@ export default class MessageSettings {
       const o = new Color(backgroundColor).object()
       const opacity = this.settings.backgroundOpacity
       return `rgba(${o.r}, ${o.g}, ${o.b}, ${opacity})`
-    } catch (e) {
-      // parse error by invalid background color
+    } catch {
+      // Invalid custom colors should not break message rendering.
       return undefined
     }
   }

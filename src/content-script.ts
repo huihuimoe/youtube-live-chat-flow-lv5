@@ -34,16 +34,18 @@ const init = async () => {
   }
 
   const button = await querySelectorAsync<HTMLAnchorElement>(
-    '#show-hide-button a'
+    '#show-hide-button a',
   )
-  button && button.click()
+  if (button) {
+    button.click()
+  }
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const { type } = message
   switch (type) {
     case 'url-changed':
-      init().then(() => sendResponse())
+      void init().then(() => sendResponse())
       return true
   }
 })
