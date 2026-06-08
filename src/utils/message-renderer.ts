@@ -136,6 +136,13 @@ const renderStickerImage = (url: string, height: number) => {
   return el
 }
 
+const prepareRoot = (target?: HTMLElement) => {
+  const el = target ?? document.createElement('div')
+  el.replaceChildren()
+  el.removeAttribute('style')
+  return el
+}
+
 const renderOneLineMessage = ({
   html,
   author,
@@ -147,6 +154,7 @@ const renderOneLineMessage = ({
   height,
   width,
   emojiStyle,
+  target,
 }: {
   html?: string
   author?: string
@@ -158,8 +166,9 @@ const renderOneLineMessage = ({
   height: number
   width: number
   emojiStyle: EmojiStyle
+  target?: HTMLElement
 }) => {
-  const el = document.createElement('div')
+  const el = prepareRoot(target)
   el.style.color = fontColor ?? 'white'
   el.style.fontSize = `${height * 0.8 * 0.9}px`
   el.style.lineHeight = `${height * 0.8}px`
@@ -211,6 +220,7 @@ const renderTwoLineMessage = ({
   height,
   width,
   emojiStyle,
+  target,
 }: {
   html?: string
   author?: string
@@ -222,8 +232,9 @@ const renderTwoLineMessage = ({
   height: number
   width: number
   emojiStyle: EmojiStyle
+  target?: HTMLElement
 }) => {
-  const el = document.createElement('div')
+  const el = prepareRoot(target)
   el.style.color = fontColor ?? 'white'
   el.style.fontSize = `${height * 0.8 * 0.9}px`
   el.style.lineHeight = `${height * 0.8}px`
@@ -278,6 +289,7 @@ const renderSticker = ({
   fontStyle,
   backgroundColor,
   height,
+  target,
 }: {
   stickerUrl?: string
   author?: string
@@ -287,8 +299,9 @@ const renderSticker = ({
   fontStyle?: string
   backgroundColor?: string
   height: number
+  target?: HTMLElement
 }) => {
-  const el = document.createElement('div')
+  const el = prepareRoot(target)
   el.style.color = fontColor ?? 'white'
   el.style.fontSize = `${height * 0.8 * 0.9}px`
   el.style.lineHeight = `${height * 0.8}px`
@@ -340,7 +353,11 @@ type Params = {
   emojiStyle: EmojiStyle
 }
 
-export const render = (template: Template, params: Params) => {
+export const render = (
+  template: Template,
+  params: Params,
+  target?: HTMLElement,
+) => {
   const newParams = {
     ...params,
     fontStyle:
@@ -353,10 +370,10 @@ export const render = (template: Template, params: Params) => {
   }
   switch (template) {
     case 'one-line-message':
-      return renderOneLineMessage(newParams)
+      return renderOneLineMessage({ ...newParams, target })
     case 'two-line-message':
-      return renderTwoLineMessage(newParams)
+      return renderTwoLineMessage({ ...newParams, target })
     case 'sticker':
-      return renderSticker(newParams)
+      return renderSticker({ ...newParams, target })
   }
 }

@@ -148,4 +148,90 @@ describe('FlowController', () => {
     expect(element.isConnected).toBe(false)
     expect(controller.activeMessages.size).toBe(0)
   })
+
+  test('reuses finished flow message elements', async () => {
+    const handlers: { finish: Animation['onfinish'] } = { finish: null }
+    const animation = {
+      pause: vi.fn(),
+      play: vi.fn(),
+      get onfinish() {
+        return handlers.finish
+      },
+      set onfinish(handler) {
+        handlers.finish = handler
+      },
+    } as unknown as Animation
+    const settings = createSettings()
+    const video = document.createElement('video')
+    const container = document.createElement('div')
+    const element = document.createElement('div')
+    element.textContent = 'first'
+    document.body.append(container)
+    const controller = new FlowController() as unknown as {
+      activeMessages: Set<HTMLElement>
+      createAnimation: (
+        element: HTMLElement,
+        keyframes: Keyframe[],
+        settings: Settings,
+      ) => Animation
+      createMessageElement: (
+        message: {
+          author?: string
+          html?: string
+          messageType?: string
+        },
+        height: number,
+        settings: Settings,
+      ) => Promise<HTMLElement | null>
+      enabled: boolean
+      getLayoutTargets: () => {
+        video: HTMLVideoElement
+        container: HTMLElement
+      }
+      getYourName: () => string
+      layoutAndAnimateMessage: (element: HTMLElement) => void
+      metrics: { containerWidth: number; videoHeight: number }
+      settings: Settings
+      timelines: []
+    }
+    Object.defineProperty(video, 'paused', { value: false })
+    element.getBoundingClientRect = vi.fn(
+      () =>
+        ({
+          height: 32,
+          width: 120,
+        }) as DOMRect,
+    )
+    controller.activeMessages = new Set()
+    controller.createAnimation = vi.fn(() => animation)
+    controller.enabled = true
+    controller.getLayoutTargets = () => ({ video, container })
+    controller.getYourName = () => ''
+    controller.metrics = { containerWidth: 640, videoHeight: 384 }
+    controller.settings = settings
+    controller.timelines = []
+
+    controller.layoutAndAnimateMessage(element)
+    const finish = handlers.finish
+    if (!finish) {
+      throw new Error('Expected flow message animation finish handler')
+    }
+    finish.call(animation, new Event('finish') as AnimationPlaybackEvent)
+    const next = await controller.createMessageElement(
+      {
+        author: 'Author',
+        html: 'second',
+        messageType: 'text-message',
+      },
+      64,
+      settings,
+    )
+
+    expect(element.isConnected).toBe(true)
+    expect(element.style.visibility).toBe('hidden')
+    expect(controller.activeMessages.size).toBe(0)
+    expect(next).toBe(element)
+    expect(next?.textContent).toContain('second')
+    expect(next?.textContent).not.toContain('first')
+  })
 })

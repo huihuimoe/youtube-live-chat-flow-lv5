@@ -65,6 +65,7 @@ export default class FlowController {
   private limiter: Limiter | undefined
   private pendingElements: HTMLElement[] = []
   private activeMessages = new Set<HTMLElement>()
+  private reusableMessages: HTMLElement[] = []
   private layoutQueue = Promise.resolve()
   private video: HTMLVideoElement | undefined
   private container: HTMLElement | undefined
@@ -281,7 +282,7 @@ export default class FlowController {
     void this.queueLayout(() => {
       this.layoutAndAnimateMessage(me)
     }).catch(() => {
-      me.remove()
+      this.recycleFlowMessage(me)
     })
   }
 
@@ -377,24 +378,33 @@ export default class FlowController {
       return null
     }
 
-    const element = render(ms.template, {
-      ...message,
-      author: ms.author ? message.author : undefined,
-      avatarUrl: ms.avatar ? message.avatarUrl : undefined,
-      fontColor: ms.fontColor,
-      fontStyle: ms.fontStyle,
-      backgroundColor: ms.backgroundColor,
-      height,
-      width: settings.maxWidth,
-      outlineRatio: settings.outlineRatio,
-      emojiStyle: settings.emojiStyle,
-    })
+    const reusableElement = this.reusableMessages.pop()
+    const element = render(
+      ms.template,
+      {
+        ...message,
+        author: ms.author ? message.author : undefined,
+        avatarUrl: ms.avatar ? message.avatarUrl : undefined,
+        fontColor: ms.fontColor,
+        fontStyle: ms.fontStyle,
+        backgroundColor: ms.backgroundColor,
+        height,
+        width: settings.maxWidth,
+        outlineRatio: settings.outlineRatio,
+        emojiStyle: settings.emojiStyle,
+      },
+      reusableElement,
+    )
 
     if (!element) {
+      if (reusableElement) {
+        this.recycleFlowMessage(reusableElement)
+      }
       return null
     }
 
     element.classList.add('ylcf-flow-message')
+    element.style.visibility = 'hidden'
 
     return element
   }
@@ -403,7 +413,7 @@ export default class FlowController {
     const settings = this.settings
     const targets = this.getLayoutTargets()
     if (!settings || !targets || targets.video.paused) {
-      element.remove()
+      this.recycleFlowMessage(element)
       return
     }
 
@@ -414,7 +424,7 @@ export default class FlowController {
     )
     const activeLimit = getTimelineCapacity(lines, settings.overflow)
     if (lines <= 0 || this.activeMessages.size >= activeLimit) {
-      element.remove()
+      this.recycleFlowMessage(element)
       return
     }
 
@@ -436,7 +446,7 @@ export default class FlowController {
       timelines: this.timelines,
     })
     if (index === undefined) {
-      element.remove()
+      this.recycleFlowMessage(element)
       return
     }
 
@@ -463,7 +473,7 @@ export default class FlowController {
     const animation = this.createAnimation(element, keyframes, settings)
     this.activeMessages.add(element)
     animation.onfinish = () => {
-      this.removeActiveMessage(element)
+      this.recycleFlowMessage(element)
     }
     animation.play()
   }
@@ -510,9 +520,22 @@ export default class FlowController {
     })
   }
 
-  private removeActiveMessage(element: HTMLElement) {
+  private recycleFlowMessage(element: HTMLElement) {
     this.activeMessages.delete(element)
-    element.remove()
+    if (!this._enabled) {
+      this.clearFlowMessage(element)
+      return
+    }
+    element.getAnimations?.().forEach((animation) => {
+      animation.cancel()
+    })
+    element.style.opacity = ''
+    element.style.transform = ''
+    element.style.visibility = 'hidden'
+    element.style.zIndex = ''
+    if (!this.reusableMessages.includes(element)) {
+      this.reusableMessages.push(element)
+    }
   }
 
   private clearFlowMessage(element: Element) {
@@ -597,12 +620,16 @@ export default class FlowController {
     this.activeMessages.forEach((element) => {
       this.clearFlowMessage(element)
     })
+    this.reusableMessages.forEach((element) => {
+      this.clearFlowMessage(element)
+    })
     parent.document
       .querySelectorAll('.ylcf-flow-message')
       .forEach((element) => {
         this.clearFlowMessage(element)
       })
     this.activeMessages.clear()
+    this.reusableMessages = []
     this.timelines = []
   }
 }
