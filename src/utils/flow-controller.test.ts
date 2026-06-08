@@ -104,4 +104,32 @@ describe('FlowController', () => {
     expect(controller.observedContainer).toBeUndefined()
     expect(controller.resizeObserver).toBeUndefined()
   })
+
+  test('keeps only the latest observer when observe calls overlap', async () => {
+    vi.useFakeTimers()
+    document.body.innerHTML =
+      '<div id="items" class="yt-live-chat-item-list-renderer"></div>'
+    const observe = vi.fn()
+    const disconnect = vi.fn()
+    const OriginalMutationObserver = globalThis.MutationObserver
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        observe = observe
+        disconnect = disconnect
+      },
+    )
+    const controller = new FlowController()
+
+    const first = controller.observe()
+    const second = controller.observe()
+    await vi.advanceTimersByTimeAsync(100)
+    await Promise.all([first, second])
+
+    expect(observe).toHaveBeenCalledTimes(1)
+
+    controller.disconnect()
+    vi.stubGlobal('MutationObserver', OriginalMutationObserver)
+    vi.useRealTimers()
+  })
 })

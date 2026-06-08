@@ -60,6 +60,7 @@ export default class FlowController {
   private resizeObserver: ResizeObserver | undefined
   private followingTimer = -1
   private cleanupTimer = -1
+  private observeGeneration = 0
   private pendingFrame = -1
   private limiter: Limiter | undefined
   private pendingElements: HTMLElement[] = []
@@ -515,12 +516,18 @@ export default class FlowController {
   }
 
   async observe() {
+    const generation = ++this.observeGeneration
     this.observer?.disconnect()
+    this.observer = undefined
     clearInterval(this.cleanupTimer)
+    this.cleanupTimer = -1
 
     const items = await querySelectorAsync(
       '#items.yt-live-chat-item-list-renderer',
     )
+    if (generation !== this.observeGeneration) {
+      return
+    }
     if (!items) {
       return
     }
@@ -543,9 +550,12 @@ export default class FlowController {
   }
 
   disconnect() {
+    this.observeGeneration++
     clearInterval(this.cleanupTimer)
+    this.cleanupTimer = -1
     clearInterval(this.followingTimer)
     this.observer?.disconnect()
+    this.observer = undefined
     this.resizeObserver?.disconnect()
     this.resizeObserver = undefined
     this.observedVideo = undefined
