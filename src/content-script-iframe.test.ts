@@ -131,4 +131,30 @@ describe('content script iframe lifecycle', () => {
       'ytp-settings-button',
     )
   })
+
+  test('adds control button after YouTube player controls become ready', async () => {
+    await import('~/content-script-iframe')
+
+    await sendRuntimeMessage('url-changed')
+    expect(document.querySelector('.ylcf-control-button')).toBeNull()
+
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      `
+        <div class="ytp-chrome-bottom">
+          <div class="ytp-chrome-controls">
+            <div class="ytp-right-controls">
+              <div class="ytp-right-controls-left">
+                <button class="ytp-settings-button ytp-button"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+    )
+
+    await vi.waitFor(() => {
+      expect(document.querySelectorAll('.ylcf-control-button')).toHaveLength(1)
+    })
+  })
 })

@@ -6,6 +6,8 @@ import { querySelectorAsync } from '~/utils/dom-helper'
 
 const controller = new FlowController()
 let observer: MutationObserver | undefined
+let playerObserver: MutationObserver | undefined
+let playerSyncFrame: number | undefined
 let playbackVideo: HTMLVideoElement | undefined
 
 const menuButtonConfigs = [
@@ -92,25 +94,29 @@ const createControlButtonIcon = (document: Document) => {
 }
 
 const addControlButton = () => {
-  removeControlButton()
-
   const controls = parent.document.querySelector(
     '.ytp-chrome-bottom .ytp-chrome-controls .ytp-right-controls',
   )
   if (!controls) {
-    return
+    return false
   }
 
-  const button = controls.ownerDocument.createElement('button')
-  button.classList.add('ytp-button', 'ylcf-control-button')
-  button.title = 'Flow messages'
-  button.onclick = async () =>
-    await chrome.runtime.sendMessage({ type: 'control-button-clicked' })
-  button.append(createControlButtonIcon(controls.ownerDocument))
+  let button = parent.document.querySelector<HTMLButtonElement>(
+    '.ylcf-control-button',
+  )
+  if (!button) {
+    button = controls.ownerDocument.createElement('button')
+    button.classList.add('ytp-button', 'ylcf-control-button')
+    button.title = 'Flow messages'
+    button.onclick = async () =>
+      await chrome.runtime.sendMessage({ type: 'control-button-clicked' })
+    button.append(createControlButtonIcon(controls.ownerDocument))
+  }
 
   insertControlButton(controls, button)
 
   updateControlButton()
+  return true
 }
 
 const updateMenuButtons = () => {
@@ -192,16 +198,63 @@ const addVideoEventListener = () => {
   )
   if (!video) {
     removeVideoEventListener()
-    return
+    return false
   }
   if (playbackVideo === video) {
-    return
+    return true
   }
 
   removeVideoEventListener()
   playbackVideo = video
   playbackVideo.addEventListener('play', onVideoPlay)
   playbackVideo.addEventListener('pause', onVideoPause)
+  return true
+}
+
+const syncPlayerControls = () => {
+  addVideoEventListener()
+  const hasControlButton = addControlButton()
+  return hasControlButton
+}
+
+const disconnectPlayerObserver = () => {
+  playerObserver?.disconnect()
+  playerObserver = undefined
+  if (playerSyncFrame !== undefined) {
+    window.cancelAnimationFrame(playerSyncFrame)
+    playerSyncFrame = undefined
+  }
+}
+
+const schedulePlayerControlsSync = () => {
+  if (playerSyncFrame !== undefined) {
+    return
+  }
+
+  playerSyncFrame = window.requestAnimationFrame(() => {
+    playerSyncFrame = undefined
+    if (syncPlayerControls()) {
+      disconnectPlayerObserver()
+    }
+  })
+}
+
+const observePlayerControls = () => {
+  disconnectPlayerObserver()
+  if (syncPlayerControls()) {
+    return
+  }
+
+  const root = parent.document.documentElement
+  if (!root) {
+    return
+  }
+
+  playerObserver = new MutationObserver(() => {
+    schedulePlayerControlsSync()
+  })
+  playerObserver.observe(root, { childList: true, subtree: true })
+  schedulePlayerControlsSync()
 }
 
 const observe = async () => {
@@ -221,6 +274,7 @@ const observe = async () => {
 const disconnect = () => {
   controller.disconnect()
   observer?.disconnect()
+  disconnectPlayerObserver()
   removeVideoEventListener()
   removeMenuButtons()
 }
@@ -230,8 +284,7 @@ const init = async () => {
   controller.clear()
   removeControlButton()
 
-  addVideoEventListener()
-  addControlButton()
+  observePlayerControls()
   addMenuButtons()
 
   await observe()
