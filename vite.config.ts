@@ -18,6 +18,9 @@ export default defineConfig({
     outDir: 'app',
     emptyOutDir: true,
   },
+  css: {
+    transformer: 'lightningcss',
+  },
   server: {
     cors: {
       origin: [
