@@ -515,6 +515,13 @@ export default class FlowController {
     element.remove()
   }
 
+  private clearFlowMessage(element: Element) {
+    element.getAnimations?.().forEach((animation) => {
+      animation.cancel()
+    })
+    element.remove()
+  }
+
   async observe() {
     const generation = ++this.observeGeneration
     this.observer?.disconnect()
@@ -566,11 +573,7 @@ export default class FlowController {
       containerWidth: 0,
       videoHeight: 0,
     }
-    if (this.pendingFrame !== -1) {
-      window.cancelAnimationFrame(this.pendingFrame)
-      this.pendingFrame = -1
-    }
-    this.pendingElements = []
+    this.clear()
   }
 
   play() {
@@ -592,12 +595,12 @@ export default class FlowController {
     }
     this.pendingElements = []
     this.activeMessages.forEach((element) => {
-      element.remove()
+      this.clearFlowMessage(element)
     })
     parent.document
       .querySelectorAll('.ylcf-flow-message')
       .forEach((element) => {
-        element.remove()
+        this.clearFlowMessage(element)
       })
     this.activeMessages.clear()
     this.timelines = []

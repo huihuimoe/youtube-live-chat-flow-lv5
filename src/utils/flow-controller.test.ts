@@ -132,4 +132,20 @@ describe('FlowController', () => {
     vi.stubGlobal('MutationObserver', OriginalMutationObserver)
     vi.useRealTimers()
   })
+
+  test('removes active flow messages on disconnect', () => {
+    const element = document.createElement('div')
+    element.classList.add('ylcf-flow-message')
+    document.body.append(element)
+    const controller = new FlowController() as unknown as {
+      activeMessages: Set<HTMLElement>
+      disconnect: () => void
+    }
+    controller.activeMessages = new Set([element])
+
+    controller.disconnect()
+
+    expect(element.isConnected).toBe(false)
+    expect(controller.activeMessages.size).toBe(0)
+  })
 })
