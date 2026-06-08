@@ -102,4 +102,33 @@ describe('content script iframe lifecycle', () => {
 
     expect(document.querySelectorAll('.ylcf-menu-button')).toHaveLength(2)
   })
+
+  test('adds control button to YouTube right controls left group', async () => {
+    document.body.innerHTML += `
+      <div class="ytp-chrome-bottom">
+        <div class="ytp-chrome-controls">
+          <div class="ytp-right-controls">
+            <div class="ytp-right-controls-left">
+              <button class="ytp-expand-right-bottom-section-button ytp-button"></button>
+              <button class="ytp-autonav-toggle ytp-button"></button>
+              <button class="ytp-subtitles-button ytp-button"></button>
+              <button class="ytp-settings-button ytp-button"></button>
+            </div>
+            <button class="ytp-fullscreen-button ytp-button"></button>
+          </div>
+        </div>
+      </div>
+    `
+    await import('~/content-script-iframe')
+
+    await sendRuntimeMessage('url-changed')
+
+    const leftControls = document.querySelector('.ytp-right-controls-left')
+    const controlButton = document.querySelector('.ylcf-control-button')
+
+    expect(controlButton?.parentElement).toBe(leftControls)
+    expect(controlButton?.nextElementSibling?.classList).toContain(
+      'ytp-settings-button',
+    )
+  })
 })

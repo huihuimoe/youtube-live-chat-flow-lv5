@@ -40,6 +40,57 @@ const removeControlButton = () => {
   }
 }
 
+const findDirectChild = (parent: Element, selector: string) =>
+  Array.from(parent.children).find((child) => child.matches(selector))
+
+const insertControlButton = (controls: Element, button: HTMLButtonElement) => {
+  /**
+   * Newer YouTube layouts put part of the right controls in a nested
+   * `.ytp-right-controls-left` group. `insertBefore` only accepts direct
+   * children, so references must be resolved inside the actual target parent.
+   */
+  const target =
+    findDirectChild(controls, '.ytp-right-controls-left') ?? controls
+  const referenceButton =
+    findDirectChild(target, '.ytp-settings-button') ??
+    findDirectChild(target, '.ytp-fullscreen-button') ??
+    findDirectChild(target, '.ytp-size-button') ??
+    findDirectChild(target, '.ytp-miniplayer-button')
+
+  target.insertBefore(button, referenceButton ?? null)
+}
+
+const createControlButtonIcon = (document: Document) => {
+  const icon = document.createElement('span')
+  icon.classList.add('ylcf-control-icon')
+  icon.setAttribute('aria-hidden', 'true')
+
+  const shadowRoot = icon.attachShadow({ mode: 'open' })
+  shadowRoot.innerHTML = `
+    <style>
+      :host {
+        color: #fff;
+      }
+
+      svg {
+        display: block;
+        fill: currentColor;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+    ${chat}
+  `
+
+  const svg = shadowRoot.querySelector('svg')
+  if (svg) {
+    svg.setAttribute('height', '100%')
+    svg.setAttribute('width', '100%')
+  }
+
+  return icon
+}
+
 const addControlButton = () => {
   removeControlButton()
 
@@ -50,22 +101,14 @@ const addControlButton = () => {
     return
   }
 
-  const button = document.createElement('button')
+  const button = controls.ownerDocument.createElement('button')
   button.classList.add('ytp-button', 'ylcf-control-button')
   button.title = 'Flow messages'
   button.onclick = async () =>
     await chrome.runtime.sendMessage({ type: 'control-button-clicked' })
-  button.innerHTML = chat
+  button.append(createControlButtonIcon(controls.ownerDocument))
 
-  // Change SVG viewBox
-  const svg = button.querySelector('svg')
-  if (svg) {
-    svg.setAttribute('viewBox', '-8 -8 40 40')
-    svg.setAttribute('height', '100%')
-    svg.setAttribute('width', '100%')
-  }
-
-  controls.prepend(button)
+  insertControlButton(controls, button)
 
   updateControlButton()
 }
@@ -194,6 +237,12 @@ const init = async () => {
   await observe()
 }
 
+const cleanup = () => {
+  disconnect()
+  controller.clear()
+  removeControlButton()
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const { type, data } = message
   switch (type) {
@@ -223,9 +272,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await init()
 
-  window.addEventListener('unload', () => {
-    disconnect()
-    controller.clear()
-    removeControlButton()
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) {
+      return
+    }
+
+    cleanup()
   })
 })

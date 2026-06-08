@@ -70,9 +70,21 @@
   user-select: none;
 }
 
-/* .ylcf-control-button */
-.ylcf-control-button > svg {
-  fill: white;
+.ylcf-control-button {
+  color: #fff;
+}
+
+.ylcf-control-icon {
+  box-sizing: border-box;
+  display: block;
+  height: 100%;
+  padding: 8px;
+  pointer-events: none;
+  width: 100%;
+}
+
+.html5-video-player.ytp-fullscreen .ylcf-control-icon {
+  padding: 12px;
 }
 
 /* Hide .ytp-fullerscreen-edu-button if .ylcf-controller exists  */
