@@ -86,4 +86,20 @@ describe('content script iframe lifecycle', () => {
 
     expect(controller.play).toHaveBeenCalledTimes(1)
   })
+
+  test('does not duplicate menu buttons across init calls', async () => {
+    document.body.innerHTML += `
+      <div id="chat-messages">
+        <yt-live-chat-header-renderer>
+          <yt-icon-button id="reference-menu-button"></yt-icon-button>
+        </yt-live-chat-header-renderer>
+      </div>
+    `
+    await import('~/content-script-iframe')
+
+    await sendRuntimeMessage('url-changed')
+    await sendRuntimeMessage('url-changed')
+
+    expect(document.querySelectorAll('.ylcf-menu-button')).toHaveLength(2)
+  })
 })

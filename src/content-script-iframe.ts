@@ -85,6 +85,8 @@ const updateMenuButtons = () => {
 }
 
 const addMenuButtons = () => {
+  removeMenuButtons()
+
   const refIconButton = document.querySelector(
     '#chat-messages > yt-live-chat-header-renderer > yt-icon-button',
   )
@@ -115,6 +117,12 @@ const addMenuButtons = () => {
   }
 
   updateMenuButtons()
+}
+
+const removeMenuButtons = () => {
+  document.querySelectorAll('.ylcf-menu-button').forEach((button) => {
+    button.remove()
+  })
 }
 
 const onVideoPlay = () => {
@@ -171,6 +179,7 @@ const disconnect = () => {
   controller.disconnect()
   observer?.disconnect()
   removeVideoEventListener()
+  removeMenuButtons()
 }
 
 const init = async () => {
