@@ -68,6 +68,14 @@ export const createInitialSettings = (): Settings => ({
   },
 })
 
+export const serializeSettings = (settings: Settings) => {
+  return JSON.stringify(settings, null, 2)
+}
+
+export const parseSettingsJson = (value: string): Settings => {
+  return JSON.parse(value) as Settings
+}
+
 export const useSettingsStore = defineStore('settings', {
   state: createInitialSettings,
   persist: {
@@ -146,6 +154,13 @@ export const useSettingsStore = defineStore('settings', {
     },
     setStackDirection({ stackDirection }: { stackDirection: StackDirection }) {
       this.stackDirection = stackDirection
+    },
+    async exportToClipboard() {
+      await navigator.clipboard.writeText(serializeSettings(this.$state))
+    },
+    async importFromClipboard() {
+      const value = await navigator.clipboard.readText()
+      this.$patch(parseSettingsJson(value))
     },
     resetState() {
       this.$patch(createInitialSettings())
