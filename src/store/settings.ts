@@ -9,7 +9,9 @@ import {
   StackDirection,
   Style,
 } from '~/models'
-import { settingsStorage, settingsStorageKey } from '~/store/persistence'
+import { serializeSettings } from '~/store/persistence'
+
+export { serializeSettings }
 
 export const createInitialSettings = (): Settings => ({
   background: false,
@@ -68,20 +70,12 @@ export const createInitialSettings = (): Settings => ({
   },
 })
 
-export const serializeSettings = (settings: Settings) => {
-  return JSON.stringify(settings, null, 2)
-}
-
 export const parseSettingsJson = (value: string): Settings => {
   return JSON.parse(value) as Settings
 }
 
 export const useSettingsStore = defineStore('settings', {
   state: createInitialSettings,
-  persist: {
-    key: settingsStorageKey,
-    storage: settingsStorage,
-  },
   actions: {
     updateStyle({
       authorType,

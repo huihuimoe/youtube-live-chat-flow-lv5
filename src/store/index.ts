@@ -1,14 +1,17 @@
 import { createPinia } from 'pinia'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
-import { loadSettingsCache, parseSettingsCache } from '~/store/persistence'
+import {
+  loadSettingsCache,
+  parseSettingsCache,
+  saveSettingsCache,
+} from '~/store/persistence'
 import { createInitialSettings, useSettingsStore } from '~/store/settings'
 
 export const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
 
 export const settingsStore = useSettingsStore(pinia)
 
 let broadcasting = false
+let persisting = false
 
 const loadSettingsStore = async () => {
   const rawSettings = await loadSettingsCache()
@@ -19,6 +22,20 @@ const loadSettingsStore = async () => {
   settingsStore.$patch(state)
 
   return settingsStore
+}
+
+const startSettingsPersistence = () => {
+  if (persisting) {
+    return
+  }
+
+  persisting = true
+  settingsStore.$subscribe(
+    () => {
+      saveSettingsCache(settingsStore.$state)
+    },
+    { detached: true },
+  )
 }
 
 const startSettingsBroadcast = () => {
@@ -37,6 +54,7 @@ const startSettingsBroadcast = () => {
 
 export const readyStore = async () => {
   const store = await loadSettingsStore()
+  startSettingsPersistence()
   startSettingsBroadcast()
   return store
 }

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { createInitialSettings } from '~/store/settings'
 
 type StorageAreaMock = {
   get: ReturnType<typeof vi.fn>
@@ -56,12 +57,14 @@ describe('settings persistence', () => {
     vi.stubGlobal('chrome', {
       storage: { local, sync },
     })
-    const { settingsStorage, settingsStorageKey } = await importPersistence()
+    const { saveSettingsCache, settingsStorageKey } = await importPersistence()
 
-    settingsStorage.setItem(settingsStorageKey, '{"chatVisible":false}')
+    const settings = { ...createInitialSettings(), chatVisible: false }
+
+    saveSettingsCache(settings)
 
     expect(sync.set).toHaveBeenCalledWith({
-      [settingsStorageKey]: '{"chatVisible":false}',
+      [settingsStorageKey]: JSON.stringify(settings, null, 2),
     })
     expect(local.set).not.toHaveBeenCalled()
   })
