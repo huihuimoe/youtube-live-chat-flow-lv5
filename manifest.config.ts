@@ -35,7 +35,7 @@ export default defineManifest({
   },
   options_ui: {
     page: 'src/options.html',
-    open_in_tab: false,
+    open_in_tab: true,
   },
   permissions: ['storage', 'clipboardRead', 'clipboardWrite'],
   host_permissions: ['https://www.youtube.com/*'],
