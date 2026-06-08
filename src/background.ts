@@ -93,6 +93,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   }
 })
 
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const { [tabId]: _removed, ...remainingTabStates } = tabStates
+  tabStates = remainingTabStates
+})
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { type } = message
   const { tab } = sender
