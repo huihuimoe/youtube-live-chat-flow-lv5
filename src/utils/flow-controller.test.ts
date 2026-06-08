@@ -49,6 +49,15 @@ const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
 })
 
 describe('FlowController', () => {
+  const createChatMessageElement = (text: string) => {
+    const element = document.createElement('yt-live-chat-text-message-renderer')
+    element.innerHTML = `
+      <span id="author-name">Author</span>
+      <span id="message">${text}</span>
+    `
+    return element
+  }
+
   test('waits for filter decisions without interval polling', async () => {
     document.documentElement.classList.add('ylcfr-active')
     const element = document.createElement('div')
@@ -233,5 +242,61 @@ describe('FlowController', () => {
     expect(next).toBe(element)
     expect(next?.textContent).toContain('second')
     expect(next?.textContent).not.toContain('first')
+  })
+
+  test('counts rendering messages against flow capacity', async () => {
+    const settings = createSettings({ lines: 2 })
+    const video = document.createElement('video')
+    const container = document.createElement('div')
+    const controller = new FlowController() as unknown as {
+      activeMessages: Set<HTMLElement>
+      createMessageElement: (
+        message: {
+          author?: string
+          html?: string
+          messageType?: string
+        },
+        height: number,
+        settings: Settings,
+      ) => Promise<HTMLElement | null>
+      enabled: boolean
+      getLayoutTargets: () => {
+        video: HTMLVideoElement
+        container: HTMLElement
+      }
+      metrics: { containerWidth: number; videoHeight: number }
+      proceed: (element: HTMLElement) => Promise<void>
+      settings: Settings
+      validateDeletedMessage: (element: HTMLElement) => Promise<boolean>
+    }
+    Object.defineProperty(video, 'paused', { value: false })
+    controller.activeMessages = new Set([
+      document.createElement('div'),
+      document.createElement('div'),
+    ])
+    controller.enabled = true
+    controller.getLayoutTargets = () => ({ video, container })
+    controller.metrics = { containerWidth: 640, videoHeight: 384 }
+    controller.settings = settings
+    controller.validateDeletedMessage = vi.fn(async () => false)
+    let createMessageElementCalls = 0
+    const createMessageElement = vi.fn(async () => {
+      createMessageElementCalls += 1
+      if (createMessageElementCalls === 1) {
+        return await new Promise<HTMLElement | null>(() => {
+          // Keep the first render in flight so the next message must respect it.
+        })
+      }
+      return null
+    })
+    controller.createMessageElement = createMessageElement
+
+    void controller.proceed(createChatMessageElement('first'))
+    await vi.waitFor(() => {
+      expect(createMessageElement).toHaveBeenCalledTimes(1)
+    })
+    await controller.proceed(createChatMessageElement('second'))
+
+    expect(createMessageElement).toHaveBeenCalledTimes(1)
   })
 })

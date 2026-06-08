@@ -65,6 +65,7 @@ export default class FlowController {
   private limiter: Limiter | undefined
   private pendingElements: HTMLElement[] = []
   private activeMessages = new Set<HTMLElement>()
+  private renderingMessages = 0
   private reusableMessages: HTMLElement[] = []
   private layoutQueue = Promise.resolve()
   private video: HTMLVideoElement | undefined
@@ -250,40 +251,50 @@ export default class FlowController {
       metrics.videoHeight,
       this.settings,
     )
-    if (
-      lines <= 0 ||
-      this.activeMessages.size >=
-        getTimelineCapacity(lines, this.settings.overflow)
-    ) {
+    if (lines <= 0) {
       return
     }
 
-    const deleted = await this.validateDeletedMessage(element)
-    if (deleted) {
+    const activeLimit = getTimelineCapacity(lines, this.settings.overflow)
+    if (!this.reserveFlowMessageSlot(activeLimit)) {
       return
     }
 
-    const message = await parse(element)
-    if (!message) {
-      return
+    let queuedForLayout = false
+    try {
+      const deleted = await this.validateDeletedMessage(element)
+      if (deleted) {
+        return
+      }
+
+      const message = await parse(element)
+      if (!message) {
+        return
+      }
+
+      if (this.settings.maxDisplays > 0 && this.limiter?.isOver()) {
+        return
+      }
+
+      const me = await this.createMessageElement(message, height, this.settings)
+      if (!me) {
+        return
+      }
+
+      await waitAllImagesLoaded(me)
+
+      queuedForLayout = true
+      void this.queueLayout(() => {
+        this.releaseFlowMessageSlot()
+        this.layoutAndAnimateMessage(me)
+      }).catch(() => {
+        this.recycleFlowMessage(me)
+      })
+    } finally {
+      if (!queuedForLayout) {
+        this.releaseFlowMessageSlot()
+      }
     }
-
-    if (this.settings.maxDisplays > 0 && this.limiter?.isOver()) {
-      return
-    }
-
-    const me = await this.createMessageElement(message, height, this.settings)
-    if (!me) {
-      return
-    }
-
-    await waitAllImagesLoaded(me)
-
-    void this.queueLayout(() => {
-      this.layoutAndAnimateMessage(me)
-    }).catch(() => {
-      this.recycleFlowMessage(me)
-    })
   }
 
   private getLinesAndHeight(videoHeight: number, settings: Settings) {
@@ -423,7 +434,7 @@ export default class FlowController {
       settings,
     )
     const activeLimit = getTimelineCapacity(lines, settings.overflow)
-    if (lines <= 0 || this.activeMessages.size >= activeLimit) {
+    if (lines <= 0 || this.getFlowMessageLoad() >= activeLimit) {
       this.recycleFlowMessage(element)
       return
     }
@@ -518,6 +529,22 @@ export default class FlowController {
       }
       this.timelines[i].push(timeline)
     })
+  }
+
+  private getFlowMessageLoad() {
+    return this.activeMessages.size + this.renderingMessages
+  }
+
+  private reserveFlowMessageSlot(activeLimit: number) {
+    if (this.getFlowMessageLoad() >= activeLimit) {
+      return false
+    }
+    this.renderingMessages += 1
+    return true
+  }
+
+  private releaseFlowMessageSlot() {
+    this.renderingMessages = Math.max(0, this.renderingMessages - 1)
   }
 
   private recycleFlowMessage(element: HTMLElement) {
@@ -629,6 +656,7 @@ export default class FlowController {
         this.clearFlowMessage(element)
       })
     this.activeMessages.clear()
+    this.renderingMessages = 0
     this.reusableMessages = []
     this.timelines = []
   }
