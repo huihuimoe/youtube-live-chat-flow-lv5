@@ -1,11 +1,15 @@
-import { semaphore } from '@fiahfy/semaphore'
 import { Message, Settings } from '~/models'
 import { querySelectorAsync, waitAllImagesLoaded } from '~/utils/dom-helper'
+import {
+  createTransformKeyframes,
+  findTimelineIndex,
+  getTimelineCapacity,
+  pruneTimelines,
+} from '~/utils/flow-layout'
+import type { Timeline } from '~/utils/flow-layout'
 import MessageSettings from '~/utils/message-settings'
 import { parse } from '~/utils/message-parser'
 import { render } from '~/utils/message-renderer'
-
-const sem = semaphore()
 
 const ClassName = {
   filterActivated: 'ylcfr-active',
@@ -13,11 +17,19 @@ const ClassName = {
   deletedMessage: 'ylcfr-deleted-message',
 }
 
-interface Timeline {
-  willAppear: number
-  didAppear: number
-  willDisappear: number
-  didDisappear: number
+const MAX_MESSAGES_STARTED_PER_FRAME = 4
+const DEFAULT_PENDING_LIMIT = 60
+const PENDING_LIMIT_STACKS = 2
+const YOUR_NAME_CACHE_MILLIS = 1000
+
+type LayoutTargets = {
+  video: HTMLVideoElement
+  container: HTMLElement
+}
+
+type LayoutMetrics = {
+  videoHeight: number
+  containerWidth: number
 }
 
 class Limiter {
@@ -45,9 +57,24 @@ export default class FlowController {
   private _settings: Settings | undefined
   private timelines: Timeline[][] = []
   private observer: MutationObserver | undefined
+  private resizeObserver: ResizeObserver | undefined
   private followingTimer = -1
   private cleanupTimer = -1
+  private pendingFrame = -1
   private limiter: Limiter | undefined
+  private pendingElements: HTMLElement[] = []
+  private activeMessages = new Set<HTMLElement>()
+  private layoutQueue = Promise.resolve()
+  private video: HTMLVideoElement | undefined
+  private container: HTMLElement | undefined
+  private observedVideo: HTMLVideoElement | undefined
+  private observedContainer: HTMLElement | undefined
+  private metrics: LayoutMetrics = {
+    containerWidth: 0,
+    videoHeight: 0,
+  }
+  private cachedYourName = ''
+  private yourNameExpiresAt = 0
 
   get enabled() {
     return this._enabled
@@ -66,6 +93,7 @@ export default class FlowController {
 
   set following(value: boolean) {
     this._following = value
+    clearInterval(this.followingTimer)
     if (value) {
       const scrollToBottom = () => {
         const hovered = !!document.querySelector('#chat:hover')
@@ -79,8 +107,6 @@ export default class FlowController {
       }
       scrollToBottom()
       this.followingTimer = window.setInterval(scrollToBottom, 1000)
-    } else {
-      clearInterval(this.followingTimer)
     }
   }
 
@@ -93,29 +119,142 @@ export default class FlowController {
     this.limiter = new Limiter(value?.maxDisplays ?? 0)
   }
 
+  private enqueue(element: HTMLElement) {
+    this.pendingElements.push(element)
+    const overflow = this.pendingElements.length - this.getPendingLimit()
+    if (overflow > 0) {
+      this.pendingElements.splice(0, overflow)
+    }
+    this.schedulePendingMessages()
+  }
+
+  private getPendingLimit() {
+    if (!this.settings) {
+      return DEFAULT_PENDING_LIMIT
+    }
+
+    const metrics = this.getMetrics()
+    const [lines] = this.getLinesAndHeight(metrics.videoHeight, this.settings)
+    if (lines <= 0) {
+      return DEFAULT_PENDING_LIMIT
+    }
+
+    return Math.max(
+      MAX_MESSAGES_STARTED_PER_FRAME,
+      getTimelineCapacity(lines, this.settings.overflow) * PENDING_LIMIT_STACKS,
+    )
+  }
+
+  private schedulePendingMessages() {
+    if (this.pendingFrame !== -1) {
+      return
+    }
+
+    this.pendingFrame = window.requestAnimationFrame(() => {
+      this.pendingFrame = -1
+      const elements = this.pendingElements.splice(
+        0,
+        MAX_MESSAGES_STARTED_PER_FRAME,
+      )
+      elements.forEach((element) => {
+        void this.proceed(element)
+      })
+      if (this.pendingElements.length > 0) {
+        this.schedulePendingMessages()
+      }
+    })
+  }
+
+  private queueLayout(task: () => void) {
+    const next = this.layoutQueue.then(task, task)
+    this.layoutQueue = next.catch(() => undefined)
+    return next
+  }
+
+  private getLayoutTargets(): LayoutTargets | undefined {
+    if (!this.video?.isConnected) {
+      this.video =
+        parent.document.querySelector<HTMLVideoElement>(
+          'ytd-watch-flexy video.html5-main-video',
+        ) ?? undefined
+    }
+    if (!this.container?.isConnected) {
+      this.container =
+        parent.document.querySelector<HTMLElement>('.html5-video-container') ??
+        undefined
+    }
+    if (!this.video || !this.container) {
+      return undefined
+    }
+
+    this.observeLayoutTargets(this.video, this.container)
+    return {
+      container: this.container,
+      video: this.video,
+    }
+  }
+
+  private observeLayoutTargets(
+    video: HTMLVideoElement,
+    container: HTMLElement,
+  ) {
+    if (this.observedVideo === video && this.observedContainer === container) {
+      return
+    }
+
+    this.resizeObserver?.disconnect()
+    this.observedVideo = video
+    this.observedContainer = container
+    this.resizeObserver = new ResizeObserver(() => {
+      this.refreshMetrics()
+    })
+    this.resizeObserver.observe(video)
+    this.resizeObserver.observe(container)
+    this.refreshMetrics()
+  }
+
+  private refreshMetrics() {
+    if (!this.video || !this.container) {
+      return
+    }
+
+    const videoRect = this.video.getBoundingClientRect()
+    const containerRect = this.container.getBoundingClientRect()
+    this.metrics = {
+      containerWidth: containerRect.width || this.container.offsetWidth,
+      videoHeight: videoRect.height || this.video.offsetHeight,
+    }
+  }
+
+  private getMetrics() {
+    if (!this.metrics.containerWidth || !this.metrics.videoHeight) {
+      this.refreshMetrics()
+    }
+    return this.metrics
+  }
+
   private async proceed(element: HTMLElement) {
     if (!this._enabled || !this.settings) {
       return
     }
 
-    const video = parent.document.querySelector<HTMLVideoElement>(
-      'ytd-watch-flexy video.html5-main-video',
-    )
-    if (!video || video.paused) {
+    const targets = this.getLayoutTargets()
+    if (!targets || targets.video.paused) {
       return
     }
 
-    const container = parent.document.querySelector<HTMLElement>(
-      '.html5-video-container',
-    )
-    if (!container) {
-      return
-    }
-
+    const metrics = this.getMetrics()
     const [lines, height] = this.getLinesAndHeight(
-      video.offsetHeight,
+      metrics.videoHeight,
       this.settings,
     )
+    if (
+      lines <= 0 ||
+      this.activeMessages.size >=
+        getTimelineCapacity(lines, this.settings.overflow)
+    ) {
+      return
+    }
 
     const deleted = await this.validateDeletedMessage(element)
     if (deleted) {
@@ -136,46 +275,12 @@ export default class FlowController {
       return
     }
 
-    me.style.display = 'none'
-    container.appendChild(me)
     await waitAllImagesLoaded(me)
 
-    void sem.acquire(async () => {
-      if (!this.settings || video.paused) {
-        me.remove()
-        return
-      }
-
-      me.style.display = 'flex'
-
-      const messageRows = Math.ceil(me.offsetHeight / Math.ceil(height))
-      const containerWidth = container.offsetWidth
-      const timeline = this.createTimeline(me, containerWidth, this.settings)
-
-      const index = this.getIndex(lines, messageRows, timeline)
-      if (index + messageRows > lines && this.settings.overflow === 'hidden') {
-        me.remove()
-        return
-      }
-      this.pushTimeline(timeline, index, messageRows)
-
-      const z = Math.floor(index / lines)
-      const y = (index % lines) + (z % 2 > 0 ? 0.5 : 0)
-      const opacity = this.settings.opacity ** (z + 1)
-      const top =
-        this.settings.stackDirection === 'bottom_to_top'
-          ? video.offsetHeight - height * (y + messageRows + 0.1)
-          : height * (y + 0.1)
-
-      me.style.top = `${top}px`
-      me.style.opacity = String(opacity)
-      me.style.zIndex = String(z + 1 + 11) // 11 is set to z-index on div.webgl
-
-      const animation = this.createAnimation(me, containerWidth, this.settings)
-      animation.onfinish = () => {
-        me.remove()
-      }
-      animation.play()
+    void this.queueLayout(() => {
+      this.layoutAndAnimateMessage(me)
+    }).catch(() => {
+      me.remove()
     })
   }
 
@@ -199,18 +304,66 @@ export default class FlowController {
     if (!active) {
       return false
     }
+    if (element.classList.contains(ClassName.filteredMessage)) {
+      return element.classList.contains(ClassName.deletedMessage)
+    }
+
     const deleted = await new Promise<boolean>((resolve) => {
-      const expireTime = Date.now() + 1000
-      const timer = window.setInterval(() => {
-        const filtered = element.classList.contains(ClassName.filteredMessage)
-        if (filtered || Date.now() > expireTime) {
-          clearInterval(timer)
-          const deleted = element.classList.contains(ClassName.deletedMessage)
-          resolve(deleted)
+      let resolved = false
+      const complete = () => {
+        if (resolved) {
+          return
         }
-      }, 10)
+        resolved = true
+        clearTimeout(timer)
+        observer.disconnect()
+        resolve(element.classList.contains(ClassName.deletedMessage))
+      }
+      const observer = new MutationObserver(() => {
+        if (element.classList.contains(ClassName.filteredMessage)) {
+          complete()
+        }
+      })
+      const timer = window.setTimeout(complete, 1000)
+
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
     })
     return deleted
+  }
+
+  private getYourName() {
+    const now = Date.now()
+    if (now < this.yourNameExpiresAt) {
+      return this.cachedYourName
+    }
+
+    this.cachedYourName = this.resolveYourName()
+    this.yourNameExpiresAt = now + YOUR_NAME_CACHE_MILLIS
+    return this.cachedYourName
+  }
+
+  private resolveYourName() {
+    const span = document.querySelector('#input-container span#author-name')
+    if (span?.textContent) {
+      return span.textContent
+    }
+
+    const movedSpan = parent.document.querySelector(
+      '#input-container span#author-name',
+    )
+    if (movedSpan?.textContent) {
+      return movedSpan.textContent
+    }
+
+    const button = parent.document.querySelector<HTMLElement>(
+      '.html5-video-player .ytp-chrome-top-buttons .ytp-watch-later-button',
+    )
+    return (
+      button?.getAttribute('title')?.replace(' として後で再生します', '') ?? ''
+    )
   }
 
   private async createMessageElement(
@@ -218,7 +371,7 @@ export default class FlowController {
     height: number,
     settings: Settings,
   ) {
-    const ms = new MessageSettings(message, settings)
+    const ms = new MessageSettings(message, settings, this.getYourName())
     if (!ms.template) {
       return null
     }
@@ -245,16 +398,84 @@ export default class FlowController {
     return element
   }
 
+  private layoutAndAnimateMessage(element: HTMLElement) {
+    const settings = this.settings
+    const targets = this.getLayoutTargets()
+    if (!settings || !targets || targets.video.paused) {
+      element.remove()
+      return
+    }
+
+    const metrics = this.getMetrics()
+    const [lines, height] = this.getLinesAndHeight(
+      metrics.videoHeight,
+      settings,
+    )
+    const activeLimit = getTimelineCapacity(lines, settings.overflow)
+    if (lines <= 0 || this.activeMessages.size >= activeLimit) {
+      element.remove()
+      return
+    }
+
+    element.style.visibility = 'hidden'
+    targets.container.appendChild(element)
+
+    const rect = element.getBoundingClientRect()
+    const messageRows = Math.max(1, Math.ceil(rect.height / Math.ceil(height)))
+    const timeline = this.createTimeline(
+      rect.width,
+      metrics.containerWidth,
+      settings,
+    )
+    const index = findTimelineIndex({
+      lines,
+      messageRows,
+      overflow: settings.overflow,
+      timeline,
+      timelines: this.timelines,
+    })
+    if (index === undefined) {
+      element.remove()
+      return
+    }
+
+    this.pushTimeline(timeline, index, messageRows)
+
+    const z = Math.floor(index / lines)
+    const y = (index % lines) + (z % 2 > 0 ? 0.5 : 0)
+    const opacity = settings.opacity ** (z + 1)
+    const top =
+      settings.stackDirection === 'bottom_to_top'
+        ? metrics.videoHeight - height * (y + messageRows + 0.1)
+        : height * (y + 0.1)
+    const keyframes = createTransformKeyframes(
+      metrics.containerWidth,
+      rect.width,
+      top,
+    )
+
+    element.style.transform = keyframes[0].transform
+    element.style.opacity = String(opacity)
+    element.style.zIndex = String(z + 1 + 11) // 11 is set to z-index on div.webgl
+    element.style.visibility = ''
+
+    const animation = this.createAnimation(element, keyframes, settings)
+    this.activeMessages.add(element)
+    animation.onfinish = () => {
+      this.removeActiveMessage(element)
+    }
+    animation.play()
+  }
+
   private createTimeline(
-    element: HTMLElement,
+    messageWidth: number,
     containerWidth: number,
     settings: Settings,
   ) {
     const displayMillis = settings.displayTime * 1000
     const delayMillis = settings.delayTime * 1000
-    const w = element.offsetWidth
-    const v = (containerWidth + w) / displayMillis
-    const t = w / v
+    const v = (containerWidth + messageWidth) / displayMillis
+    const t = messageWidth / v
     const n = Date.now()
 
     return {
@@ -267,83 +488,35 @@ export default class FlowController {
 
   private createAnimation(
     element: HTMLElement,
-    containerWidth: number,
+    keyframes: Keyframe[],
     settings: Settings,
   ) {
-    element.style.transform = `translate(${containerWidth}px, 0px)`
-
-    const duration = settings.displayTime * 1000
-    const delay = settings.delayTime * 1000
-    const keyframes = [
-      { transform: `translate(${containerWidth}px, 0px)` },
-      { transform: `translate(-${element.offsetWidth}px, 0px)` },
-    ]
-    const animation = element.animate(keyframes, { duration, delay })
+    const animation = element.animate(keyframes, {
+      delay: settings.delayTime * 1000,
+      duration: settings.displayTime * 1000,
+    })
     animation.pause()
     return animation
   }
 
-  private isDeniedIndex(index: number, lines: number) {
-    // e.g. if lines value is "12", denied index is "23", "47", "71" ...
-    return index % (lines * 2) === lines * 2 - 1
-  }
-
-  private getIndex(lines: number, messageRows: number, timeline: Timeline) {
-    let index = this.timelines.findIndex((_, i, timelines) => {
-      const mod = (i + messageRows) % lines
-      if (mod > 0 && mod < messageRows) {
-        return false
-      }
-      return Array(messageRows)
-        .fill(1)
-        .every((_, j) => {
-          if (this.isDeniedIndex(i + j, lines)) {
-            return false
-          }
-
-          const ts = timelines[i + j]
-          if (!ts) {
-            return true
-          }
-
-          const t = ts[ts.length - 1]
-          if (!t) {
-            return true
-          }
-
-          return (
-            t.didDisappear < timeline.willDisappear &&
-            t.didAppear < timeline.willAppear
-          )
-        })
-    })
-    if (index === -1) {
-      index = this.timelines.length
-      const mod = (index + messageRows) % lines
-      if (mod > 0 && mod < messageRows) {
-        index += messageRows - mod
-      }
-      if (this.isDeniedIndex(index + messageRows - 1, lines)) {
-        index += messageRows
-      }
-    }
-    return index
-  }
-
   private pushTimeline(timeline: Timeline, index: number, messageRows: number) {
-    Array(messageRows)
-      .fill(1)
-      .forEach((_, j) => {
-        const i = index + j
-        if (!this.timelines[i]) {
-          this.timelines[i] = []
-        }
-        this.timelines[i].push(timeline)
-      })
+    Array.from({ length: messageRows }).forEach((_, j) => {
+      const i = index + j
+      if (!this.timelines[i]) {
+        this.timelines[i] = []
+      }
+      this.timelines[i].push(timeline)
+    })
+  }
+
+  private removeActiveMessage(element: HTMLElement) {
+    this.activeMessages.delete(element)
+    element.remove()
   }
 
   async observe() {
     this.observer?.disconnect()
+    clearInterval(this.cleanupTimer)
 
     const items = await querySelectorAsync(
       '#items.yt-live-chat-item-list-renderer',
@@ -357,7 +530,7 @@ export default class FlowController {
         const nodes = Array.from(mutation.addedNodes)
         nodes.forEach((node: Node) => {
           if (node instanceof HTMLElement) {
-            void this.proceed(node)
+            this.enqueue(node)
           }
         })
       })
@@ -365,35 +538,58 @@ export default class FlowController {
     this.observer.observe(items, { childList: true })
 
     this.cleanupTimer = window.setInterval(() => {
-      this.timelines = this.timelines.map((timelines) => {
-        return timelines.filter((timeline) => {
-          return timeline.didDisappear > Date.now()
-        })
-      })
+      this.timelines = pruneTimelines(this.timelines, Date.now())
     }, 1000)
   }
 
   disconnect() {
     clearInterval(this.cleanupTimer)
+    clearInterval(this.followingTimer)
     this.observer?.disconnect()
+    this.resizeObserver?.disconnect()
+    this.resizeObserver = undefined
+    this.observedVideo = undefined
+    this.observedContainer = undefined
+    this.video = undefined
+    this.container = undefined
+    this.metrics = {
+      containerWidth: 0,
+      videoHeight: 0,
+    }
+    if (this.pendingFrame !== -1) {
+      window.cancelAnimationFrame(this.pendingFrame)
+      this.pendingFrame = -1
+    }
+    this.pendingElements = []
   }
 
   play() {
-    parent.document.querySelectorAll('.ylcf-flow-message').forEach((e) => {
-      e.getAnimations().forEach((a) => a.play())
+    this.activeMessages.forEach((element) => {
+      element.getAnimations().forEach((animation) => animation.play())
     })
   }
 
   pause() {
-    parent.document.querySelectorAll('.ylcf-flow-message').forEach((e) => {
-      e.getAnimations().forEach((a) => a.pause())
+    this.activeMessages.forEach((element) => {
+      element.getAnimations().forEach((animation) => animation.pause())
     })
   }
 
   clear() {
-    parent.document.querySelectorAll('.ylcf-flow-message').forEach((e) => {
-      e.remove()
+    if (this.pendingFrame !== -1) {
+      window.cancelAnimationFrame(this.pendingFrame)
+      this.pendingFrame = -1
+    }
+    this.pendingElements = []
+    this.activeMessages.forEach((element) => {
+      element.remove()
     })
+    parent.document
+      .querySelectorAll('.ylcf-flow-message')
+      .forEach((element) => {
+        element.remove()
+      })
+    this.activeMessages.clear()
     this.timelines = []
   }
 }

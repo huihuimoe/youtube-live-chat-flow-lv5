@@ -56,12 +56,16 @@
 /* .ylcf-flow-message */
 .ylcf-flow-message {
   align-items: center;
+  contain: layout style;
   display: flex;
   font-weight: bold;
   left: 0;
+  pointer-events: none;
   position: absolute;
+  top: 0;
   vertical-align: bottom;
   white-space: nowrap;
+  will-change: transform;
   box-sizing: border-box;
   user-select: none;
 }

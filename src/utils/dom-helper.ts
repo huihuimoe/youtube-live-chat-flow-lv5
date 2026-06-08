@@ -15,49 +15,67 @@ export const querySelectorAsync = <T extends Element = Element>(
   })
 }
 
-export const getImageSourceAsync = (
-  img: HTMLImageElement,
-  interval = 100,
-  timeout = 1000,
-) => {
+export const getImageSourceAsync = (img: HTMLImageElement, timeout = 1000) => {
   return new Promise<string>((resolve) => {
-    const expireTime = Date.now() + timeout
-    const timer = window.setInterval(() => {
-      if (img.src || Date.now() > expireTime) {
-        clearInterval(timer)
-        resolve(img.src)
+    const source = img.currentSrc || img.src
+    if (source) {
+      resolve(source)
+      return
+    }
+
+    const cleanup = () => {
+      observer.disconnect()
+      clearTimeout(timer)
+      img.removeEventListener('load', complete)
+      img.removeEventListener('error', complete)
+    }
+    const complete = () => {
+      cleanup()
+      resolve(img.currentSrc || img.src)
+    }
+    const observer = new MutationObserver(() => {
+      if (img.currentSrc || img.src) {
+        complete()
       }
-    }, interval)
+    })
+    const timer = window.setTimeout(complete, timeout)
+
+    observer.observe(img, { attributes: true, attributeFilter: ['src'] })
+    img.addEventListener('load', complete, { once: true })
+    img.addEventListener('error', complete, { once: true })
   })
 }
 
-export const waitImageLoaded = (
-  img: HTMLImageElement,
-  interval = 100,
-  timeout = 1000,
-) => {
+export const waitImageLoaded = (img: HTMLImageElement, timeout = 1000) => {
   return new Promise<string>((resolve) => {
-    const expireTime = Date.now() + timeout
-    const timer = window.setInterval(() => {
-      if ((img.complete && img.naturalWidth) || Date.now() > expireTime) {
-        clearInterval(timer)
-        resolve(img.src)
-      }
-    }, interval)
+    if (img.complete && img.naturalWidth) {
+      resolve(img.currentSrc || img.src)
+      return
+    }
+
+    const cleanup = () => {
+      clearTimeout(timer)
+      img.removeEventListener('load', complete)
+      img.removeEventListener('error', complete)
+    }
+    const complete = () => {
+      cleanup()
+      resolve(img.currentSrc || img.src)
+    }
+    const timer = window.setTimeout(complete, timeout)
+
+    img.addEventListener('load', complete, { once: true })
+    img.addEventListener('error', complete, { once: true })
   })
 }
 
-export const waitAllImagesLoaded = (
-  element: HTMLElement,
-  interval = 100,
-  timeout = 1000,
-) => {
+export const waitAllImagesLoaded = (element: HTMLElement, timeout = 1000) => {
   if (element instanceof HTMLImageElement) {
-    return Promise.all([waitImageLoaded(element, interval, timeout)])
+    return Promise.all([waitImageLoaded(element, timeout)])
   }
   return Promise.all(
     Array.from(element.querySelectorAll('img')).map((img) => {
-      return waitImageLoaded(img, interval, timeout)
+      return waitImageLoaded(img, timeout)
     }),
   )
 }
