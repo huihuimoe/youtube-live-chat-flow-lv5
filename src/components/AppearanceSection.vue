@@ -1,23 +1,23 @@
 <template>
   <div class="appearance-section">
-    <div class="d-flex">
-      <div class="mr-3">
-        <div class="caption">Height</div>
+    <div class="settings-inline-row">
+      <div class="height-type-field">
+        <div class="settings-field-label">Height</div>
         <v-select
           v-model="heightType"
           :items="heightTypes"
           density="compact"
           single-line
-          class="pt-0 mt-1"
+          class="settings-stacked-control"
           style="width: 120px"
         />
       </div>
-      <div class="flex-grow-1">
+      <div class="settings-grow">
         <template v-if="heightType === 'fixed'">
-          <div class="caption">Line Height</div>
+          <div class="settings-field-label">Line Height</div>
           <v-slider
             v-model="lineHeight"
-            class="align-center mb-5"
+            class="settings-slider"
             min="1"
             max="256"
             step="1"
@@ -27,7 +27,7 @@
             <template #prepend>
               <v-text-field
                 v-model="lineHeight"
-                class="mt-0 pt-0"
+                class="settings-flush-control settings-value-field"
                 density="compact"
                 hide-details
                 single-line
@@ -36,16 +36,15 @@
                 max="256"
                 step="1"
                 suffix="px"
-                style="width: 75px"
               />
             </template>
           </v-slider>
         </template>
         <template v-else>
-          <div class="caption">Lines</div>
+          <div class="settings-field-label">Lines</div>
           <v-slider
             v-model="lines"
-            class="align-center mb-5"
+            class="settings-slider"
             min="1"
             max="64"
             step="1"
@@ -55,7 +54,7 @@
             <template #prepend>
               <v-text-field
                 v-model="lines"
-                class="mt-0 pt-0"
+                class="settings-flush-control settings-value-field"
                 density="compact"
                 hide-details
                 single-line
@@ -63,7 +62,6 @@
                 min="1"
                 max="64"
                 step="1"
-                style="width: 75px"
               />
             </template>
           </v-slider>
@@ -71,10 +69,10 @@
       </div>
     </div>
 
-    <div class="caption">Max Width (Infinite if set to 0)</div>
+    <div class="settings-field-label">Max Width (Infinite if set to 0)</div>
     <v-slider
       v-model="maxWidth"
-      class="align-center mb-5"
+      class="settings-slider"
       min="0"
       max="300"
       density="compact"
@@ -83,7 +81,7 @@
       <template #prepend>
         <v-text-field
           v-model="maxWidth"
-          class="mt-0 pt-0"
+          class="settings-flush-control settings-value-field"
           density="compact"
           hide-details
           single-line
@@ -91,15 +89,14 @@
           min="0"
           max="300"
           suffix="%"
-          style="width: 75px"
         />
       </template>
     </v-slider>
 
-    <div class="caption">Opacity</div>
+    <div class="settings-field-label">Opacity</div>
     <v-slider
       v-model="opacity"
-      class="align-center mb-5"
+      class="settings-slider"
       min="0"
       max="1"
       step="0.1"
@@ -109,7 +106,7 @@
       <template #prepend>
         <v-text-field
           v-model="opacity"
-          class="mt-0 pt-0"
+          class="settings-flush-control settings-value-field"
           density="compact"
           hide-details
           single-line
@@ -117,18 +114,23 @@
           min="0"
           max="1"
           step="0.1"
-          style="width: 75px"
         />
       </template>
     </v-slider>
 
-    <div class="caption">Show Background (for Non-paid Messages)</div>
-    <v-switch v-model="background" class="mt-0" density="compact" />
+    <div class="settings-field-label">
+      Show Background (for Non-paid Messages)
+    </div>
+    <v-switch
+      v-model="background"
+      class="settings-flush-control"
+      density="compact"
+    />
 
-    <div class="caption">Background Opacity</div>
+    <div class="settings-field-label">Background Opacity</div>
     <v-slider
       v-model="backgroundOpacity"
-      class="align-center mb-5"
+      class="settings-slider"
       min="0"
       max="1"
       step="0.1"
@@ -138,7 +140,7 @@
       <template #prepend>
         <v-text-field
           v-model="backgroundOpacity"
-          class="mt-0 pt-0"
+          class="settings-flush-control settings-value-field"
           density="compact"
           hide-details
           single-line
@@ -146,15 +148,14 @@
           min="0"
           max="1"
           step="0.1"
-          style="width: 75px"
         />
       </template>
     </v-slider>
 
-    <div class="caption">Outline Ratio</div>
+    <div class="settings-field-label">Outline Ratio</div>
     <v-slider
       v-model="outlineRatio"
-      class="align-center mb-5"
+      class="settings-slider"
       min="0"
       max="5"
       step="0.1"
@@ -164,7 +165,7 @@
       <template #prepend>
         <v-text-field
           v-model="outlineRatio"
-          class="mt-0 pt-0"
+          class="settings-flush-control settings-value-field"
           density="compact"
           hide-details
           single-line
@@ -173,21 +174,20 @@
           max="5"
           step="0.1"
           suffix="%"
-          style="width: 75px"
         />
       </template>
     </v-slider>
 
-    <div class="caption">Emoji Style</div>
+    <div class="settings-field-label">Emoji Style</div>
     <v-select
       v-model="emojiStyle"
       :items="emojiStyles"
       density="compact"
       single-line
-      class="mt-1 pt-0"
+      class="settings-stacked-control"
     />
 
-    <div class="caption">Extended Style</div>
+    <div class="settings-field-label">Extended Style</div>
     <v-textarea
       v-model="extendedStyle"
       placeholder='font-family: "Yu Gothic", YuGothic, Meiryo;'
@@ -195,7 +195,7 @@
       single-line
       rows="1"
       auto-grow
-      class="mt-1 pt-0"
+      class="settings-stacked-control"
     />
   </div>
 </template>
@@ -316,3 +316,9 @@ const outlineRatio = computed({
   },
 })
 </script>
+
+<style scoped>
+.height-type-field {
+  margin-right: 12px;
+}
+</style>
