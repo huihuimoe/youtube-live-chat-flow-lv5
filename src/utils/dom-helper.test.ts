@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { waitImageLoaded } from '~/utils/dom-helper'
+import { waitImageLoaded, waitLayoutImagesLoaded } from '~/utils/dom-helper'
 
 const markImageLoaded = (img: HTMLImageElement) => {
   Object.defineProperty(img, 'complete', {
@@ -45,5 +45,47 @@ describe('waitImageLoaded', () => {
 
     setIntervalSpy.mockRestore()
     vi.useRealTimers()
+  })
+})
+
+describe('waitLayoutImagesLoaded', () => {
+  test('skips fixed-width images', async () => {
+    const element = document.createElement('div')
+    const img = document.createElement('img')
+    img.style.width = '32px'
+    Object.defineProperty(img, 'complete', {
+      configurable: true,
+      value: false,
+    })
+    Object.defineProperty(img, 'naturalWidth', {
+      configurable: true,
+      value: 0,
+    })
+    element.append(img)
+    const setTimeoutSpy = vi.spyOn(window, 'setTimeout')
+
+    await waitLayoutImagesLoaded(element)
+
+    expect(setTimeoutSpy).not.toHaveBeenCalled()
+    setTimeoutSpy.mockRestore()
+  })
+
+  test('waits for images without fixed width', async () => {
+    const element = document.createElement('div')
+    const img = document.createElement('img')
+    Object.defineProperty(img, 'complete', {
+      configurable: true,
+      value: false,
+    })
+    Object.defineProperty(img, 'naturalWidth', {
+      configurable: true,
+      value: 0,
+    })
+    element.append(img)
+
+    const loaded = waitLayoutImagesLoaded(element)
+    img.dispatchEvent(new Event('load'))
+
+    await expect(loaded).resolves.toEqual([''])
   })
 })

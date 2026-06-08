@@ -69,13 +69,22 @@ export const waitImageLoaded = (img: HTMLImageElement, timeout = 1000) => {
   })
 }
 
-export const waitAllImagesLoaded = (element: HTMLElement, timeout = 1000) => {
+const needsLayoutImageWait = (img: HTMLImageElement) => !img.style.width
+
+export const waitLayoutImagesLoaded = (
+  element: HTMLElement,
+  timeout = 1000,
+) => {
   if (element instanceof HTMLImageElement) {
-    return Promise.all([waitImageLoaded(element, timeout)])
+    return needsLayoutImageWait(element)
+      ? Promise.all([waitImageLoaded(element, timeout)])
+      : Promise.all([])
   }
   return Promise.all(
-    Array.from(element.querySelectorAll('img')).map((img) => {
-      return waitImageLoaded(img, timeout)
-    }),
+    Array.from(element.querySelectorAll('img'))
+      .filter(needsLayoutImageWait)
+      .map((img) => {
+        return waitImageLoaded(img, timeout)
+      }),
   )
 }

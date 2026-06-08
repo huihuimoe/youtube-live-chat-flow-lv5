@@ -1,5 +1,5 @@
 import { Message, Settings } from '~/models'
-import { querySelectorAsync, waitAllImagesLoaded } from '~/utils/dom-helper'
+import { querySelectorAsync, waitLayoutImagesLoaded } from '~/utils/dom-helper'
 import {
   createTransformKeyframes,
   findTimelineIndex,
@@ -281,7 +281,7 @@ export default class FlowController {
         return
       }
 
-      await waitAllImagesLoaded(me)
+      await waitLayoutImagesLoaded(me)
 
       queuedForLayout = true
       void this.queueLayout(() => {
