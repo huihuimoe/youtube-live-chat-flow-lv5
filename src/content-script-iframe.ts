@@ -316,7 +316,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 })
 
-document.addEventListener('DOMContentLoaded', async () => {
+const start = async () => {
   const data = await chrome.runtime.sendMessage({ type: 'iframe-loaded' })
 
   controller.enabled = data.enabled
@@ -332,4 +332,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     cleanup()
   })
-})
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => void start(), {
+    once: true,
+  })
+} else {
+  void start()
+}

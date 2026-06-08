@@ -70,7 +70,11 @@ describe('content script iframe lifecycle', () => {
             runtimeListeners.push(listener)
           }),
         },
-        sendMessage: vi.fn(),
+        sendMessage: vi.fn(async () => ({
+          enabled: true,
+          following: true,
+          settings: {},
+        })),
       },
     })
   })
