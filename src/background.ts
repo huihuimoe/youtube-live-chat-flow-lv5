@@ -20,6 +20,15 @@ const setIcon = async (tabId: number) => {
   await chrome.action.setIcon({ tabId, path })
 }
 
+const sendTabMessage = async (
+  tabId: number,
+  message: { type: string; data?: unknown },
+) => {
+  try {
+    await chrome.tabs.sendMessage(tabId, message)
+  } catch {}
+}
+
 const contentLoaded = async () => {
   const settings = await getSettings()
 
@@ -48,7 +57,7 @@ const toggleEnabled = async (tabId: number) => {
 
   await setIcon(tabId)
 
-  await chrome.tabs.sendMessage(tabId, {
+  await sendTabMessage(tabId, {
     type: 'enabled-changed',
     data: { enabled },
   })
@@ -64,7 +73,7 @@ const toggleFollowing = async (tabId: number) => {
 
   await setIcon(tabId)
 
-  await chrome.tabs.sendMessage(tabId, {
+  await sendTabMessage(tabId, {
     type: 'following-changed',
     data: { following },
   })
@@ -78,18 +87,16 @@ const settingsChanged = async () => {
       continue
     }
 
-    try {
-      await chrome.tabs.sendMessage(tab.id, {
-        type: 'settings-changed',
-        data: { settings },
-      })
-    } catch {}
+    await sendTabMessage(tab.id, {
+      type: 'settings-changed',
+      data: { settings },
+    })
   }
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (changeInfo.url) {
-    await chrome.tabs.sendMessage(tabId, { type: 'url-changed' })
+    await sendTabMessage(tabId, { type: 'url-changed' })
   }
 })
 
