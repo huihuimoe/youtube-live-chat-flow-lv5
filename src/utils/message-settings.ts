@@ -1,5 +1,8 @@
 import Color from 'color'
 import { AuthorType, Message, Settings } from '~/models'
+import { setBoundedCacheValue } from '~/utils/bounded-cache'
+
+const MAX_BACKGROUND_COLOR_CACHE_SIZE = 100
 
 export default class MessageSettings {
   private message: Message
@@ -104,12 +107,20 @@ export default class MessageSettings {
       const o = new Color(backgroundColor).object()
       const opacity = this.settings.backgroundOpacity
       const color = `rgba(${o.r}, ${o.g}, ${o.b}, ${opacity})`
-      MessageSettings.backgroundColorCache.set(cacheKey, color)
-      return color
+      return setBoundedCacheValue(
+        MessageSettings.backgroundColorCache,
+        cacheKey,
+        color,
+        MAX_BACKGROUND_COLOR_CACHE_SIZE,
+      )
     } catch {
       // Invalid custom colors should not break message rendering.
-      MessageSettings.backgroundColorCache.set(cacheKey, undefined)
-      return undefined
+      return setBoundedCacheValue(
+        MessageSettings.backgroundColorCache,
+        cacheKey,
+        undefined,
+        MAX_BACKGROUND_COLOR_CACHE_SIZE,
+      )
     }
   }
 }

@@ -1,7 +1,9 @@
 import Color from 'color'
 import { EmojiStyle } from '~/models'
+import { setBoundedCacheValue } from '~/utils/bounded-cache'
 
 const outlineStyleCache = new Map<string, string>()
+const MAX_OUTLINE_STYLE_CACHE_SIZE = 100
 
 // e.g. https://yt3.ggpht.com/-TusVtXdhftI/AAAAAAAAAAI/AAAAAAAAAAA/OCgsPx8gmAk/s32-c-k-no-mo-rj-c0xffffff/photo.jpg
 const resizeAvatarUrl = (url: string, size: number) => {
@@ -48,8 +50,12 @@ const getOutlineStyle = (
             ${n}px 0 0 ${c},
             -${n}px 0 0 ${c};
         `
-  outlineStyleCache.set(key, style)
-  return style
+  return setBoundedCacheValue(
+    outlineStyleCache,
+    key,
+    style,
+    MAX_OUTLINE_STYLE_CACHE_SIZE,
+  )
 }
 
 const renderAvatar = (url: string, height: number) => {
