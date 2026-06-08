@@ -1,41 +1,41 @@
 <template>
   <v-app>
-    <v-main class="fill-height">
+    <v-main class="settings-main">
       <v-container fluid>
-        <div class="subtitle-2">General</div>
-        <general-section class="mt-3 mb-5 mx-3" />
+        <div class="settings-section-title">General</div>
+        <general-section class="settings-section-body" />
 
-        <div class="subtitle-2">Appearance</div>
-        <appearance-section class="mt-3 mb-5 mx-3" />
+        <div class="settings-section-title">Appearance</div>
+        <appearance-section class="settings-section-body" />
 
-        <div class="subtitle-2">Behavior</div>
-        <behavior-section class="mt-3 mb-5 mx-3" />
+        <div class="settings-section-title">Behavior</div>
+        <behavior-section class="settings-section-body" />
 
-        <div class="subtitle-2">Filter</div>
-        <filter-section class="mt-3 mb-5 mx-3" />
+        <div class="settings-section-title">Filter</div>
+        <filter-section class="settings-section-body" />
 
-        <div class="subtitle-2">Others</div>
-        <others-section class="mt-3 mb-5 mx-3" />
+        <div class="settings-section-title">Others</div>
+        <others-section class="settings-section-body" />
 
-        <div class="subtitle-2">Settings</div>
-        <div class="settings-actions mt-3 mb-5 mx-3">
+        <div class="settings-section-title">Settings</div>
+        <div class="settings-actions settings-section-body">
           <v-btn
             variant="tonal"
-            prepend-icon="mdi-export"
+            prepend-icon="$export"
             @click="handleClickExport"
           >
             Export Settings
           </v-btn>
           <v-btn
             variant="tonal"
-            prepend-icon="mdi-import"
+            prepend-icon="$import"
             @click="handleClickImport"
           >
             Import Settings
           </v-btn>
           <v-btn
             variant="tonal"
-            prepend-icon="mdi-restore"
+            prepend-icon="$restore"
             @click="handleClickReset"
           >
             Reset to Default
@@ -108,6 +108,62 @@ const handleClickReset = () => {
 <style>
 html {
   overflow-y: auto;
+}
+
+.settings-main {
+  min-height: 100%;
+}
+
+.settings-section-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.375rem;
+}
+
+.settings-section-body {
+  margin: 12px 12px 20px;
+}
+
+.settings-field-label {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.settings-inline-row {
+  display: flex;
+}
+
+.settings-center-row {
+  display: flex;
+  align-items: center;
+}
+
+.settings-grow {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.settings-slider {
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.settings-flush-control {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.settings-value-field {
+  width: 112px;
+}
+
+.settings-stacked-control {
+  margin-top: 4px;
+  padding-top: 0;
+}
+
+.settings-capitalize {
+  text-transform: capitalize;
 }
 </style>
 

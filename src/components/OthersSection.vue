@@ -2,7 +2,7 @@
   <div class="others-section">
     <v-switch
       v-model="chatVisible"
-      class="mt-0 pt-0"
+      class="settings-flush-control"
       label="Always Show Chat"
       hint="By default, the chat is hidden for YouTube Premieres."
       persistent-hint

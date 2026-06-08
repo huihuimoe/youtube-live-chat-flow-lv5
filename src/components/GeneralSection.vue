@@ -3,9 +3,9 @@
     <div
       v-for="authorType in authorTypes"
       :key="authorType"
-      class="d-flex align-center"
+      class="settings-center-row"
     >
-      <div class="caption text-capitalize" style="width: 100px">
+      <div class="settings-field-label settings-capitalize option-name">
         {{ authorType }}
       </div>
       <v-btn
@@ -14,7 +14,7 @@
         icon
         @click="handleClickVisibility(authorType)"
       >
-        <v-icon>mdi-eye</v-icon>
+        <v-icon>$eye</v-icon>
       </v-btn>
       <v-btn
         :color="isAvatar(authorType) ? 'primary' : 'grey'"
@@ -22,15 +22,15 @@
         icon
         @click="handleClickAvatar(authorType)"
       >
-        <v-icon>mdi-account-circle</v-icon>
+        <v-icon>$accountCircle</v-icon>
       </v-btn>
       <div
-        class="color-picker mx-2"
+        class="color-picker color-picker-space"
         :style="{ backgroundColor: getColor(authorType) }"
       >
         <v-text-field
           :model-value="getColor(authorType)"
-          class="mt-0 pt-0"
+          class="settings-flush-control"
           type="color"
           hide-details
           @update:model-value="(value) => setColor(authorType, String(value))"
@@ -41,7 +41,7 @@
         :items="templates"
         density="compact"
         hide-details
-        class="mt-0 pt-0 ml-2 caption flex-grow-1"
+        class="settings-template-select settings-flush-control settings-field-label settings-grow"
         @update:model-value="
           (value) => setTemplate(authorType, value as Template)
         "
@@ -50,9 +50,9 @@
     <div
       v-for="messageType in messageTypes"
       :key="messageType"
-      class="d-flex align-center"
+      class="settings-center-row"
     >
-      <div class="caption text-capitalize" style="width: 100px">
+      <div class="settings-field-label settings-capitalize option-name">
         {{ getTitle(messageType) }}
       </div>
       <v-btn
@@ -61,7 +61,7 @@
         icon
         @click="handleClickVisibility(messageType)"
       >
-        <v-icon>mdi-eye</v-icon>
+        <v-icon>$eye</v-icon>
       </v-btn>
     </div>
   </div>
@@ -112,6 +112,18 @@ const handleClickAvatar = (authorType: AuthorType) => {
 </script>
 
 <style scoped>
+.option-name {
+  flex: 0 0 100px;
+}
+
+.color-picker-space {
+  margin: 0 8px;
+}
+
+.settings-template-select {
+  margin-left: 8px;
+}
+
 .color-picker {
   width: 26px;
   height: 26px;
