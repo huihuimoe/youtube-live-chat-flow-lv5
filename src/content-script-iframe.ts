@@ -6,6 +6,7 @@ import { querySelectorAsync } from '~/utils/dom-helper'
 
 const controller = new FlowController()
 let observer: MutationObserver | undefined
+let playbackVideo: HTMLVideoElement | undefined
 
 const menuButtonConfigs = [
   {
@@ -116,16 +117,40 @@ const addMenuButtons = () => {
   updateMenuButtons()
 }
 
+const onVideoPlay = () => {
+  controller.play()
+}
+
+const onVideoPause = () => {
+  controller.pause()
+}
+
+const removeVideoEventListener = () => {
+  if (!playbackVideo) {
+    return
+  }
+
+  playbackVideo.removeEventListener('play', onVideoPlay)
+  playbackVideo.removeEventListener('pause', onVideoPause)
+  playbackVideo = undefined
+}
+
 const addVideoEventListener = () => {
   const video = parent.document.querySelector<HTMLVideoElement>(
     'ytd-watch-flexy video.html5-main-video',
   )
   if (!video) {
+    removeVideoEventListener()
+    return
+  }
+  if (playbackVideo === video) {
     return
   }
 
-  video.addEventListener('play', () => controller.play())
-  video.addEventListener('pause', () => controller.pause())
+  removeVideoEventListener()
+  playbackVideo = video
+  playbackVideo.addEventListener('play', onVideoPlay)
+  playbackVideo.addEventListener('pause', onVideoPause)
 }
 
 const observe = async () => {
@@ -145,6 +170,7 @@ const observe = async () => {
 const disconnect = () => {
   controller.disconnect()
   observer?.disconnect()
+  removeVideoEventListener()
 }
 
 const init = async () => {
