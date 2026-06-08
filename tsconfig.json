@@ -6,12 +6,9 @@
     "sourceMap": true,
     "paths": {
       "~/*": ["./src/*"],
-      "~~/*": ["./*"],
-      "vuex": ["./node_modules/vuex/types/index.d.ts"]
+      "~~/*": ["./*"]
     },
-    "types": ["chrome", "vuetify"],
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
+    "types": ["chrome"],
     "strict": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,

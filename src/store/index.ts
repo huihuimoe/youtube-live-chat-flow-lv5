@@ -1,58 +1,42 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
-import VuexPersistence from 'vuex-persist'
-import { getModule } from 'vuex-module-decorators'
-import settings from '~/store/settings'
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { loadSettingsCache, parseSettingsCache } from '~/store/persistence'
+import { createInitialSettings, useSettingsStore } from '~/store/settings'
 
-Vue.use(Vuex)
+export const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
 
-const vuexPersist = new VuexPersistence({
-  storage: chrome.storage.local as any,
-  asyncStorage: true,
-  restoreState: async (key, storage) => {
-    const result = await storage?.get(key)
-    const json = result[key]
+export const settingsStore = useSettingsStore(pinia)
 
-    let state = {}
-    try {
-      state = JSON.parse(json)
-    } catch {
-      state = {}
-    }
+let broadcasting = false
 
-    return {
-      ...state,
-      __storageReady: true,
-    }
-  },
-  saveState: async (key, state, storage) => {
-    const json = JSON.stringify(state)
-    await storage?.set({ [key]: json })
-  },
-})
+const loadSettingsStore = async () => {
+  const rawSettings = await loadSettingsCache()
+  const state = rawSettings
+    ? parseSettingsCache(rawSettings)
+    : createInitialSettings()
 
-const createStore = () =>
-  new Vuex.Store<any>({
-    state: {},
-    modules: {
-      settings,
-    },
-    plugins: [
-      vuexPersist.plugin,
-      (store) => {
-        store.subscribe(
-          async () =>
-            await chrome.runtime.sendMessage({ type: 'settings-changed' }),
-        )
-      },
-    ],
-  })
+  settingsStore.$patch(state)
 
-export const readyStore = async () => {
-  const store = createStore()
-  // @see https://github.com/championswimmer/vuex-persist#how-to-know-when-async-store-has-been-replaced
-  await (store as any).restored
-  return store
+  return settingsStore
 }
 
-export const settingsStore = getModule(settings, createStore())
+const startSettingsBroadcast = () => {
+  if (broadcasting || typeof document === 'undefined') {
+    return
+  }
+
+  broadcasting = true
+  settingsStore.$subscribe(
+    () => {
+      void chrome.runtime.sendMessage({ type: 'settings-changed' })
+    },
+    { detached: true },
+  )
+}
+
+export const readyStore = async () => {
+  const store = await loadSettingsStore()
+  startSettingsBroadcast()
+  return store
+}

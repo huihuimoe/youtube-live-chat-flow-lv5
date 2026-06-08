@@ -9,18 +9,16 @@
         {{ authorType }}
       </div>
       <v-btn
-        slot="activator"
         :color="isVisible(authorType) ? 'primary' : 'grey'"
-        text
+        variant="text"
         icon
         @click="handleClickVisibility(authorType)"
       >
         <v-icon>mdi-eye</v-icon>
       </v-btn>
       <v-btn
-        slot="activator"
         :color="isAvatar(authorType) ? 'primary' : 'grey'"
-        text
+        variant="text"
         icon
         @click="handleClickAvatar(authorType)"
       >
@@ -31,20 +29,22 @@
         :style="{ backgroundColor: getColor(authorType) }"
       >
         <v-text-field
-          :value="getColor(authorType)"
+          :model-value="getColor(authorType)"
           class="mt-0 pt-0"
           type="color"
           hide-details
-          @input="(value) => setColor(authorType, value)"
+          @update:model-value="(value) => setColor(authorType, String(value))"
         />
       </div>
       <v-select
-        :value="getTemplate(authorType)"
+        :model-value="getTemplate(authorType)"
         :items="templates"
-        dense
+        density="compact"
         hide-details
         class="mt-0 pt-0 ml-2 caption flex-grow-1"
-        @input="(value) => setTemplate(authorType, value)"
+        @update:model-value="
+          (value) => setTemplate(authorType, value as Template)
+        "
       />
     </div>
     <div
@@ -56,9 +56,8 @@
         {{ getTitle(messageType) }}
       </div>
       <v-btn
-        slot="activator"
         :color="isVisible(messageType) ? 'primary' : 'grey'"
-        text
+        variant="text"
         icon
         @click="handleClickVisibility(messageType)"
       >
@@ -75,9 +74,9 @@ import { settingsStore } from '~/store'
 const authorTypes = ['guest', 'member', 'moderator', 'owner', 'you']
 const messageTypes = ['super-chat', 'super-sticker', 'membership']
 const templates = [
-  { text: '1 line (without Author)', value: 'one-line-without-author' },
-  { text: '1 line (with Author)', value: 'one-line-with-author' },
-  { text: '2 lines', value: 'two-line' },
+  { title: '1 line (without Author)', value: 'one-line-without-author' },
+  { title: '1 line (with Author)', value: 'one-line-with-author' },
+  { title: '2 lines', value: 'two-line' },
 ]
 
 const getColor = (authorType: AuthorType) => {
@@ -129,7 +128,7 @@ const handleClickAvatar = (authorType: AuthorType) => {
   opacity: 0;
 }
 
-.color-picker > .v-text-field ::v-deep input {
+.color-picker > .v-text-field :deep(input) {
   cursor: pointer;
   height: 24px;
 }

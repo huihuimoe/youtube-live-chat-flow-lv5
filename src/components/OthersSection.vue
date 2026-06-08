@@ -6,7 +6,7 @@
       label="Always Show Chat"
       hint="By default, the chat is hidden for YouTube Premieres."
       persistent-hint
-      dense
+      density="compact"
     />
   </div>
 </template>

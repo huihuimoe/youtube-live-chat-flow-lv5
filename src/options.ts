@@ -1,16 +1,11 @@
-import Vue from 'vue'
-import type { ComponentOptions, CreateElement } from 'vue'
-import type Vuetify from 'vuetify'
+import { createApp } from 'vue'
 import App from '~/components/App.vue'
 import vuetify from '~/plugins/vuetify'
+import { pinia, readyStore } from '~/store'
 
-/**
- * tsgo does not currently pick up Vuetify 2's ComponentOptions augmentation.
- */
-const appOptions: ComponentOptions<Vue> & { vuetify: Vuetify } = {
-  el: '#app',
-  render: (createElement: CreateElement) => createElement(App),
-  vuetify,
+const mountApp = async () => {
+  await readyStore()
+  createApp(App).use(pinia).use(vuetify).mount('#app')
 }
 
-new Vue(appOptions)
+void mountApp()

@@ -1,4 +1,4 @@
-import { Module, VuexModule, Mutation } from 'vuex-module-decorators'
+import { defineStore } from 'pinia'
 import {
   AuthorType,
   EmojiStyle,
@@ -9,8 +9,9 @@ import {
   StackDirection,
   Style,
 } from '~/models'
+import { settingsStorage, settingsStorageKey } from '~/store/persistence'
 
-const initialState: Settings = {
+export const createInitialSettings = (): Settings => ({
   background: false,
   backgroundOpacity: 0.4,
   chatVisible: true,
@@ -65,125 +66,89 @@ const initialState: Settings = {
     'super-sticker': true,
     membership: true,
   },
-}
+})
 
-@Module({ name: 'settings' })
-export default class SettingsModule extends VuexModule {
-  background = initialState.background
-  backgroundOpacity = initialState.backgroundOpacity
-  chatVisible = true
-  delayTime = initialState.delayTime
-  displayTime = initialState.displayTime
-  emojiStyle = initialState.emojiStyle
-  extendedStyle = initialState.extendedStyle
-  heightType = initialState.heightType
-  lineHeight = initialState.lineHeight
-  lines = initialState.lines
-  maxDisplays = initialState.maxDisplays
-  maxLines = initialState.maxLines
-  maxWidth = initialState.maxWidth
-  opacity = initialState.opacity
-  outlineRatio = initialState.outlineRatio
-  overflow = initialState.overflow
-  stackDirection = initialState.stackDirection
-  styles = initialState.styles
-  visibilities = initialState.visibilities
-
-  @Mutation
-  updateStyle({
-    authorType,
-    ...params
-  }: { authorType: AuthorType } & Partial<Style>) {
-    this.styles = {
-      ...this.styles,
-      [authorType]: {
-        ...this.styles[authorType],
-        ...params,
-      },
-    }
-  }
-  @Mutation
-  setVisibility({
-    type,
-    visibility,
-  }: {
-    type: AuthorType | MessageType
-    visibility: boolean
-  }) {
-    this.visibilities[type] = visibility
-  }
-  @Mutation
-  setBackground({ background }: { background: boolean }) {
-    this.background = background
-  }
-  @Mutation
-  setBackgroundOpacity({ backgroundOpacity }: { backgroundOpacity: number }) {
-    this.backgroundOpacity = backgroundOpacity
-  }
-  @Mutation
-  setChatVisible({ chatVisible }: { chatVisible: boolean }) {
-    this.chatVisible = chatVisible
-  }
-  @Mutation
-  setDelayTime({ delayTime }: { delayTime: number }) {
-    this.delayTime = delayTime
-  }
-  @Mutation
-  setDisplayTime({ displayTime }: { displayTime: number }) {
-    this.displayTime = displayTime
-  }
-  @Mutation
-  setEmojiStyle({ emojiStyle }: { emojiStyle: EmojiStyle }) {
-    this.emojiStyle = emojiStyle
-  }
-  @Mutation
-  setExtendedStyle({ extendedStyle }: { extendedStyle: string }) {
-    this.extendedStyle = extendedStyle
-  }
-  @Mutation
-  setHeightType({ heightType }: { heightType: HeightType }) {
-    this.heightType = heightType
-  }
-  @Mutation
-  setLineHeight({ lineHeight }: { lineHeight: number }) {
-    this.lineHeight = lineHeight
-  }
-  @Mutation
-  setLines({ lines }: { lines: number }) {
-    this.lines = lines
-  }
-  @Mutation
-  setMaxDisplays({ maxDisplays }: { maxDisplays: number }) {
-    this.maxDisplays = maxDisplays
-  }
-  @Mutation
-  setMaxLines({ maxLines }: { maxLines: number }) {
-    this.maxLines = maxLines
-  }
-  @Mutation
-  setMaxWidth({ maxWidth }: { maxWidth: number }) {
-    this.maxWidth = maxWidth
-  }
-  @Mutation
-  setOpacity({ opacity }: { opacity: number }) {
-    this.opacity = opacity
-  }
-  @Mutation
-  setOutlineRatio({ outlineRatio }: { outlineRatio: number }) {
-    this.outlineRatio = outlineRatio
-  }
-  @Mutation
-  setOverflow({ overflow }: { overflow: Overflow }) {
-    this.overflow = overflow
-  }
-  @Mutation
-  setStackDirection({ stackDirection }: { stackDirection: StackDirection }) {
-    this.stackDirection = stackDirection
-  }
-  @Mutation
-  resetState() {
-    for (const [k, v] of Object.entries(initialState)) {
-      ;(this as any)[k] = v
-    }
-  }
-}
+export const useSettingsStore = defineStore('settings', {
+  state: createInitialSettings,
+  persist: {
+    key: settingsStorageKey,
+    storage: settingsStorage,
+  },
+  actions: {
+    updateStyle({
+      authorType,
+      ...params
+    }: { authorType: AuthorType } & Partial<Style>) {
+      this.styles = {
+        ...this.styles,
+        [authorType]: {
+          ...this.styles[authorType],
+          ...params,
+        },
+      }
+    },
+    setVisibility({
+      type,
+      visibility,
+    }: {
+      type: AuthorType | MessageType
+      visibility: boolean
+    }) {
+      this.visibilities[type] = visibility
+    },
+    setBackground({ background }: { background: boolean }) {
+      this.background = background
+    },
+    setBackgroundOpacity({ backgroundOpacity }: { backgroundOpacity: number }) {
+      this.backgroundOpacity = backgroundOpacity
+    },
+    setChatVisible({ chatVisible }: { chatVisible: boolean }) {
+      this.chatVisible = chatVisible
+    },
+    setDelayTime({ delayTime }: { delayTime: number }) {
+      this.delayTime = delayTime
+    },
+    setDisplayTime({ displayTime }: { displayTime: number }) {
+      this.displayTime = displayTime
+    },
+    setEmojiStyle({ emojiStyle }: { emojiStyle: EmojiStyle }) {
+      this.emojiStyle = emojiStyle
+    },
+    setExtendedStyle({ extendedStyle }: { extendedStyle: string }) {
+      this.extendedStyle = extendedStyle
+    },
+    setHeightType({ heightType }: { heightType: HeightType }) {
+      this.heightType = heightType
+    },
+    setLineHeight({ lineHeight }: { lineHeight: number }) {
+      this.lineHeight = lineHeight
+    },
+    setLines({ lines }: { lines: number }) {
+      this.lines = lines
+    },
+    setMaxDisplays({ maxDisplays }: { maxDisplays: number }) {
+      this.maxDisplays = maxDisplays
+    },
+    setMaxLines({ maxLines }: { maxLines: number }) {
+      this.maxLines = maxLines
+    },
+    setMaxWidth({ maxWidth }: { maxWidth: number }) {
+      this.maxWidth = maxWidth
+    },
+    setOpacity({ opacity }: { opacity: number }) {
+      this.opacity = opacity
+    },
+    setOutlineRatio({ outlineRatio }: { outlineRatio: number }) {
+      this.outlineRatio = outlineRatio
+    },
+    setOverflow({ overflow }: { overflow: Overflow }) {
+      this.overflow = overflow
+    },
+    setStackDirection({ stackDirection }: { stackDirection: StackDirection }) {
+      this.stackDirection = stackDirection
+    },
+    resetState() {
+      this.$patch(createInitialSettings())
+    },
+  },
+})

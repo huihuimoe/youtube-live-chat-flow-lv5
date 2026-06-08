@@ -7,14 +7,14 @@
       min="1"
       max="10"
       step="0.1"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="displayTime"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -34,14 +34,14 @@
       min="0"
       max="300"
       step="1"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="delayTime"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -59,14 +59,14 @@
       v-model="maxLines"
       class="align-center mb-5"
       min="0"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="maxLines"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -82,14 +82,14 @@
       class="align-center mb-5"
       min="0"
       max="10"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="maxDisplays"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -104,7 +104,7 @@
     <v-select
       v-model="stackDirection"
       :items="stackDirections"
-      dense
+      density="compact"
       single-line
       class="mt-1 pt-0"
     />
@@ -113,7 +113,7 @@
     <v-select
       v-model="overflow"
       :items="overflows"
-      dense
+      density="compact"
       single-line
       class="mt-1 pt-0"
     />
@@ -125,12 +125,12 @@ import { computed } from 'vue'
 import { settingsStore } from '~/store'
 
 const stackDirections = [
-  { text: 'Top to Bottom', value: 'top_to_bottom' },
-  { text: 'Bottom to Top', value: 'bottom_to_top' },
+  { title: 'Top to Bottom', value: 'top_to_bottom' },
+  { title: 'Bottom to Top', value: 'bottom_to_top' },
 ]
 const overflows = [
-  { text: 'Hidden', value: 'hidden' },
-  { text: 'Overlay', value: 'overlay' },
+  { title: 'Hidden', value: 'hidden' },
+  { title: 'Overlay', value: 'overlay' },
 ]
 
 const delayTime = computed({

@@ -11,8 +11,8 @@ const initialState = { enabled: true, following: true }
 let tabStates: { [tabId: number]: TabState } = {}
 
 const getSettings = async () => {
-  const store = await readyStore()
-  return JSON.parse(JSON.stringify(store.state.settings))
+  const settingsStore = await readyStore()
+  return JSON.parse(JSON.stringify(settingsStore.$state))
 }
 
 const setIcon = async (tabId: number) => {

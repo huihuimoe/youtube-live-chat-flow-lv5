@@ -17,7 +17,7 @@
         <div class="subtitle-2">Others</div>
         <others-section class="mt-3 mb-5 mx-3" />
 
-        <v-btn class="mt-4" depressed block @click="handleClickReset">
+        <v-btn class="mt-4" variant="flat" block @click="handleClickReset">
           Reset Settings to Default
         </v-btn>
       </v-container>

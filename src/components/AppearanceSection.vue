@@ -6,7 +6,7 @@
         <v-select
           v-model="heightType"
           :items="heightTypes"
-          dense
+          density="compact"
           single-line
           class="pt-0 mt-1"
           style="width: 120px"
@@ -21,14 +21,14 @@
             min="1"
             max="256"
             step="1"
-            dense
+            density="compact"
             hide-details
           >
             <template #prepend>
               <v-text-field
                 v-model="lineHeight"
                 class="mt-0 pt-0"
-                dense
+                density="compact"
                 hide-details
                 single-line
                 type="number"
@@ -49,14 +49,14 @@
             min="1"
             max="64"
             step="1"
-            dense
+            density="compact"
             hide-details
           >
             <template #prepend>
               <v-text-field
                 v-model="lines"
                 class="mt-0 pt-0"
-                dense
+                density="compact"
                 hide-details
                 single-line
                 type="number"
@@ -77,14 +77,14 @@
       class="align-center mb-5"
       min="0"
       max="300"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="maxWidth"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -103,14 +103,14 @@
       min="0"
       max="1"
       step="0.1"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="opacity"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -123,7 +123,7 @@
     </v-slider>
 
     <div class="caption">Show Background (for Non-paid Messages)</div>
-    <v-switch v-model="background" class="mt-0" dense />
+    <v-switch v-model="background" class="mt-0" density="compact" />
 
     <div class="caption">Background Opacity</div>
     <v-slider
@@ -132,14 +132,14 @@
       min="0"
       max="1"
       step="0.1"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="backgroundOpacity"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -158,14 +158,14 @@
       min="0"
       max="5"
       step="0.1"
-      dense
+      density="compact"
       hide-details
     >
       <template #prepend>
         <v-text-field
           v-model="outlineRatio"
           class="mt-0 pt-0"
-          dense
+          density="compact"
           hide-details
           single-line
           type="number"
@@ -182,7 +182,7 @@
     <v-select
       v-model="emojiStyle"
       :items="emojiStyles"
-      dense
+      density="compact"
       single-line
       class="mt-1 pt-0"
     />
@@ -191,7 +191,7 @@
     <v-textarea
       v-model="extendedStyle"
       placeholder='font-family: "Yu Gothic", YuGothic, Meiryo;'
-      dense
+      density="compact"
       single-line
       rows="1"
       auto-grow
@@ -205,14 +205,14 @@ import { computed } from 'vue'
 import { settingsStore } from '~/store'
 
 const heightTypes = [
-  { text: 'Flexible', value: 'flexible' },
-  { text: 'Fixed', value: 'fixed' },
+  { title: 'Flexible', value: 'flexible' },
+  { title: 'Fixed', value: 'fixed' },
 ]
 
 const emojiStyles = [
-  { text: 'Image', value: 'image' },
-  { text: 'Alternative Text', value: 'text' },
-  { text: 'None', value: 'none' },
+  { title: 'Image', value: 'image' },
+  { title: 'Alternative Text', value: 'text' },
+  { title: 'None', value: 'none' },
 ]
 
 const background = computed({
