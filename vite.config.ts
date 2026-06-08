@@ -6,10 +6,25 @@ import vuetify from 'vite-plugin-vuetify'
 import manifest from './manifest.config'
 
 export default defineConfig({
-  plugins: [vue(), vuetify({ autoImport: true }), crx({ manifest })],
+  plugins: [
+    vue(),
+    vuetify({
+      autoImport: true,
+      styles: { configFile: 'src/styles/vuetify-settings.scss' },
+    }),
+    crx({ manifest }),
+  ],
   build: {
     outDir: 'app',
     emptyOutDir: true,
+  },
+  server: {
+    cors: {
+      origin: [
+        /^https?:\/\/(?:(?:[^:]+\.)?localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/,
+        /^chrome-extension:\/\//,
+      ],
+    },
   },
   resolve: {
     alias: {
