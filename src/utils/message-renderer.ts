@@ -1,6 +1,8 @@
 import Color from 'color'
 import { EmojiStyle } from '~/models'
 
+const outlineStyleCache = new Map<string, string>()
+
 // e.g. https://yt3.ggpht.com/-TusVtXdhftI/AAAAAAAAAAI/AAAAAAAAAAA/OCgsPx8gmAk/s32-c-k-no-mo-rj-c0xffffff/photo.jpg
 const resizeAvatarUrl = (url: string, size: number) => {
   return url.replace(/(\/s)\d+([^/]+\/photo\.jpg)$/, `$1${Math.ceil(size)}$2`)
@@ -27,9 +29,15 @@ const getOutlineStyle = (
   if (!outlineRatio) {
     return ''
   }
+  const key = `${fontColor}:${height}:${outlineRatio}`
+  const cached = outlineStyleCache.get(key)
+  if (cached !== undefined) {
+    return cached
+  }
+
   const n = (height * outlineRatio).toFixed(2)
   const c = Color(fontColor).darken(0.6).hex()
-  return `
+  const style = `
           text-shadow:
             -${n}px -${n}px 0 ${c},
             ${n}px -${n}px 0 ${c},
@@ -40,12 +48,15 @@ const getOutlineStyle = (
             ${n}px 0 0 ${c},
             -${n}px 0 0 ${c};
         `
+  outlineStyleCache.set(key, style)
+  return style
 }
 
 const renderAvatar = (url: string, height: number) => {
   const el = document.createElement('img')
   el.src = resizeAvatarUrl(url, height)
   el.style.height = `${height}px`
+  el.style.width = `${height}px`
   el.style.borderRadius = '50%'
   el.style.objectFit = 'cover'
   return el
@@ -78,17 +89,19 @@ const renderMessage = (
   el.style.textOverflow = 'ellipsis'
   el.style.maxWidth = '100%'
   el.innerHTML = html
+  const images = Array.from(el.querySelectorAll('img'))
 
   switch (emojiStyle) {
     case 'image':
-      Array.from(el.querySelectorAll('img')).forEach((e) => {
+      images.forEach((e) => {
         e.src = resizeEmojiUrl(e.src, height)
         e.style.height = `${height}px`
+        e.style.width = `${height}px`
         e.style.verticalAlign = 'bottom'
       })
       break
     case 'text':
-      Array.from(el.querySelectorAll('img')).forEach((e) => {
+      images.forEach((e) => {
         let alt = e.getAttribute('alt') ?? ''
         if (alt.length > 2) {
           alt = `:${alt}:`
@@ -98,7 +111,7 @@ const renderMessage = (
       })
       break
     case 'none':
-      Array.from(el.querySelectorAll('img')).forEach((e) => {
+      images.forEach((e) => {
         e.remove()
       })
       if (!el.textContent?.trim()) {
@@ -325,7 +338,7 @@ export const render = (template: Template, params: Params) => {
   const newParams = {
     ...params,
     fontStyle:
-      params.fontStyle +
+      (params.fontStyle ?? '') +
       getOutlineStyle(
         params.fontColor ?? 'white',
         params.height,

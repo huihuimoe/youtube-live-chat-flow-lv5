@@ -4,33 +4,13 @@ import { AuthorType, Message, Settings } from '~/models'
 export default class MessageSettings {
   private message: Message
   private settings: Settings
+  private yourName: string
+  private static backgroundColorCache = new Map<string, string | undefined>()
 
-  constructor(message: Message, settings: Settings) {
+  constructor(message: Message, settings: Settings, yourName: string) {
     this.message = message
     this.settings = settings
-  }
-
-  private get yourName() {
-    // if input control exists
-    const span = document.querySelector('#input-container span#author-name')
-    if (span?.textContent) {
-      return span.textContent
-    }
-    // if input control is moved
-    const movedSpan = parent.document.querySelector(
-      '#input-container span#author-name',
-    )
-    if (movedSpan?.textContent) {
-      return movedSpan.textContent
-    }
-    // otherwise
-    const button = parent.document.querySelector<HTMLElement>(
-      '.html5-video-player .ytp-chrome-top-buttons .ytp-watch-later-button',
-    )
-    // TODO: japanese only
-    return (
-      button?.getAttribute('title')?.replace(' として後で再生します', '') ?? ''
-    )
+    this.yourName = yourName
   }
 
   private get authorType() {
@@ -115,12 +95,20 @@ export default class MessageSettings {
       return undefined
     }
 
+    const cacheKey = `${backgroundColor}:${this.settings.backgroundOpacity}`
+    if (MessageSettings.backgroundColorCache.has(cacheKey)) {
+      return MessageSettings.backgroundColorCache.get(cacheKey)
+    }
+
     try {
       const o = new Color(backgroundColor).object()
       const opacity = this.settings.backgroundOpacity
-      return `rgba(${o.r}, ${o.g}, ${o.b}, ${opacity})`
+      const color = `rgba(${o.r}, ${o.g}, ${o.b}, ${opacity})`
+      MessageSettings.backgroundColorCache.set(cacheKey, color)
+      return color
     } catch {
       // Invalid custom colors should not break message rendering.
+      MessageSettings.backgroundColorCache.set(cacheKey, undefined)
       return undefined
     }
   }
