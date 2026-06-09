@@ -17,6 +17,8 @@ const ClassName = {
   deletedMessage: 'ylcfr-deleted-message',
 }
 
+const FLOW_CONTAINER_CLASS = 'ylcf-container'
+const FLOW_MESSAGE_CLASS = 'ylcf-flow-message'
 const MAX_MESSAGES_STARTED_PER_FRAME = 4
 const DEFAULT_PENDING_LIMIT = 60
 const PENDING_LIMIT_STACKS = 2
@@ -25,6 +27,7 @@ const YOUR_NAME_CACHE_MILLIS = 1000
 type LayoutTargets = {
   video: HTMLVideoElement
   container: HTMLElement
+  flowContainer: HTMLElement
 }
 
 type LayoutMetrics = {
@@ -70,6 +73,7 @@ export default class FlowController {
   private layoutQueue = Promise.resolve()
   private video: HTMLVideoElement | undefined
   private container: HTMLElement | undefined
+  private flowContainer: HTMLElement | undefined
   private observedVideo: HTMLVideoElement | undefined
   private observedContainer: HTMLElement | undefined
   private metrics: LayoutMetrics = {
@@ -189,12 +193,41 @@ export default class FlowController {
     if (!this.video || !this.container) {
       return undefined
     }
+    const player = this.container.closest<HTMLElement>('.html5-video-player')
+    if (!player) {
+      return undefined
+    }
+    const flowContainer = this.getFlowContainer(player)
 
     this.observeLayoutTargets(this.video, this.container)
     return {
       container: this.container,
+      flowContainer,
       video: this.video,
     }
+  }
+
+  private getFlowContainer(container: HTMLElement) {
+    if (this.flowContainer?.isConnected) {
+      if (this.flowContainer.parentElement === container) {
+        return this.flowContainer
+      }
+      this.flowContainer.remove()
+    }
+
+    const existingContainer = Array.from(container.children).find((child) =>
+      child.classList.contains(FLOW_CONTAINER_CLASS),
+    ) as HTMLElement | undefined
+    if (existingContainer) {
+      this.flowContainer = existingContainer
+      return existingContainer
+    }
+
+    const flowContainer = parent.document.createElement('div')
+    flowContainer.className = FLOW_CONTAINER_CLASS
+    container.appendChild(flowContainer)
+    this.flowContainer = flowContainer
+    return flowContainer
   }
 
   private observeLayoutTargets(
@@ -223,9 +256,15 @@ export default class FlowController {
 
     const videoRect = this.video.getBoundingClientRect()
     const containerRect = this.container.getBoundingClientRect()
+    const containerWidth =
+      containerRect.width ||
+      this.container.offsetWidth ||
+      videoRect.width ||
+      this.video.offsetWidth
+    const videoHeight = videoRect.height || this.video.offsetHeight
     this.metrics = {
-      containerWidth: containerRect.width || this.container.offsetWidth,
-      videoHeight: videoRect.height || this.video.offsetHeight,
+      containerWidth,
+      videoHeight,
     }
   }
 
@@ -414,7 +453,7 @@ export default class FlowController {
       return null
     }
 
-    element.classList.add('ylcf-flow-message')
+    element.classList.add(FLOW_MESSAGE_CLASS)
     element.style.visibility = 'hidden'
 
     return element
@@ -440,7 +479,7 @@ export default class FlowController {
     }
 
     element.style.visibility = 'hidden'
-    targets.container.appendChild(element)
+    targets.flowContainer.appendChild(element)
 
     const rect = element.getBoundingClientRect()
     const messageRows = Math.max(1, Math.ceil(rect.height / Math.ceil(height)))
@@ -619,6 +658,8 @@ export default class FlowController {
     this.observedContainer = undefined
     this.video = undefined
     this.container = undefined
+    this.flowContainer?.remove()
+    this.flowContainer = undefined
     this.metrics = {
       containerWidth: 0,
       videoHeight: 0,
@@ -651,7 +692,7 @@ export default class FlowController {
       this.clearFlowMessage(element)
     })
     parent.document
-      .querySelectorAll('.ylcf-flow-message')
+      .querySelectorAll(`.${FLOW_MESSAGE_CLASS}`)
       .forEach((element) => {
         this.clearFlowMessage(element)
       })

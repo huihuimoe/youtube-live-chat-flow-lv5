@@ -53,6 +53,17 @@
   overflow: hidden;
 }
 
+/* .ylcf-container */
+.ylcf-container {
+  contain: layout paint style;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 12;
+}
+
 /* .ylcf-flow-message */
 .ylcf-flow-message {
   align-items: center;

@@ -114,6 +114,56 @@ describe('FlowController', () => {
     expect(controller.resizeObserver).toBeUndefined()
   })
 
+  test('creates one reusable flow container under the video player', () => {
+    const OriginalResizeObserver = globalThis.ResizeObserver
+    const observe = vi.fn()
+    const disconnect = vi.fn()
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe = observe
+        disconnect = disconnect
+      },
+    )
+    document.body.innerHTML = `
+      <ytd-watch-flexy>
+        <div class="html5-video-player">
+          <div class="html5-video-container">
+            <video class="html5-main-video"></video>
+          </div>
+        </div>
+      </ytd-watch-flexy>
+    `
+    const videoPlayer = document.querySelector<HTMLElement>(
+      '.html5-video-player',
+    )
+    const videoContainer = document.querySelector<HTMLElement>(
+      '.html5-video-container',
+    )
+    const controller = new FlowController() as unknown as {
+      getLayoutTargets: () =>
+        | {
+            container: HTMLElement
+            flowContainer: HTMLElement
+            video: HTMLVideoElement
+          }
+        | undefined
+    }
+
+    const targets = controller.getLayoutTargets()
+    const nextTargets = controller.getLayoutTargets()
+
+    expect(targets?.container).toBe(videoContainer)
+    expect(targets?.flowContainer.parentElement).toBe(videoPlayer)
+    expect(targets?.flowContainer.className).toBe('ylcf-container')
+    expect(nextTargets?.flowContainer).toBe(targets?.flowContainer)
+    expect(
+      videoPlayer?.querySelectorAll(':scope > .ylcf-container'),
+    ).toHaveLength(1)
+
+    vi.stubGlobal('ResizeObserver', OriginalResizeObserver)
+  })
+
   test('keeps only the latest observer when observe calls overlap', async () => {
     vi.useFakeTimers()
     document.body.innerHTML =
@@ -173,8 +223,10 @@ describe('FlowController', () => {
     const settings = createSettings()
     const video = document.createElement('video')
     const container = document.createElement('div')
+    const flowContainer = document.createElement('div')
     const element = document.createElement('div')
     element.textContent = 'first'
+    container.append(flowContainer)
     document.body.append(container)
     const controller = new FlowController() as unknown as {
       activeMessages: Set<HTMLElement>
@@ -196,6 +248,7 @@ describe('FlowController', () => {
       getLayoutTargets: () => {
         video: HTMLVideoElement
         container: HTMLElement
+        flowContainer: HTMLElement
       }
       getYourName: () => string
       layoutAndAnimateMessage: (element: HTMLElement) => void
@@ -214,7 +267,7 @@ describe('FlowController', () => {
     controller.activeMessages = new Set()
     controller.createAnimation = vi.fn(() => animation)
     controller.enabled = true
-    controller.getLayoutTargets = () => ({ video, container })
+    controller.getLayoutTargets = () => ({ video, container, flowContainer })
     controller.getYourName = () => ''
     controller.metrics = { containerWidth: 640, videoHeight: 384 }
     controller.settings = settings
@@ -237,6 +290,7 @@ describe('FlowController', () => {
     )
 
     expect(element.isConnected).toBe(true)
+    expect(element.parentElement).toBe(flowContainer)
     expect(element.style.visibility).toBe('hidden')
     expect(controller.activeMessages.size).toBe(0)
     expect(next).toBe(element)
